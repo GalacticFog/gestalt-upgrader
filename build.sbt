@@ -8,6 +8,7 @@ organization := "com.galacticfog"
 lazy val root = (project in file(".")).enablePlugins(PlayScala, GitVersioning)
 
 git.baseVersion := "1.6"
+git.useGitDescribe := true
 
 scalaVersion := "2.12.4"
 
