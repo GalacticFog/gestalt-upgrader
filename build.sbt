@@ -8,6 +8,20 @@ git.useGitDescribe := true
 
 scalaVersion := "2.12.4"
 
+import com.typesafe.sbt.packager.docker._
+maintainer in Docker := "Chris Baker <chris@galacticfog.com>"
+dockerBaseImage := "java:8-jre-alpine"
+dockerExposedPorts := Seq(9000)
+dockerUsername := Some("galacticfog")
+dockerCommands := dockerCommands.value.flatMap {
+  case cmd@Cmd("FROM",_) => List(
+    cmd,
+    Cmd("RUN", "apk add --update bash && rm -rf /var/cache/apk/*")     
+  )
+  case other => List(other)
+}
+
+
 libraryDependencies ++= Seq(
   guice,
   "com.typesafe.akka" %% "akka-persistence" % "2.5.12",

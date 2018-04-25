@@ -1,0 +1,16 @@
+image: galacticfog/docker-sbt:1.12
+
+stages:
+- test
+- publish
+
+cache:
+  key: "$CI_PIPELINE_ID"
+  untracked: false
+
+publish:
+  stage: publish
+  services:
+    - docker:dind
+  script:
+    - sbt clean update test docker:publish
