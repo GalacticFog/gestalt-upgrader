@@ -16,7 +16,7 @@ dockerUsername := Some("galacticfog")
 dockerCommands := dockerCommands.value.flatMap {
   case cmd@Cmd("FROM",_) => List(
     cmd,
-    Cmd("RUN", "apk add --update bash && rm -rf /var/cache/apk/*")     
+    Cmd("RUN", "apk add --update bash libc6-compat libstdc++ && rm -rf /var/cache/apk/*")     
   )
   case other => List(other)
 }
