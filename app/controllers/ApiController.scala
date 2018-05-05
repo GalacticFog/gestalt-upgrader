@@ -19,11 +19,11 @@ class ApiController @Inject()( cc: ControllerComponents,
   implicit val ec = cc.executionContext
 
   def getPlan() = Action.async {
-    (upgradeActor ? UpgradeActor.GetPlan).mapTo[String].map(s => Ok(s))
+    (upgradeActor ? UpgradeActor.GetPlan).mapTo[Seq[String]].map(s => Ok(Json.toJson(s)))
   }
 
   def getLog(debug: Boolean) = Action.async {
-    (upgradeActor ? UpgradeActor.GetLog).mapTo[String].map(s => Ok(s))
+    (upgradeActor ? UpgradeActor.GetLog).mapTo[Seq[String]].map(s => Ok(Json.toJson(s)))
   }
 
   def getStatus() = Action.async {

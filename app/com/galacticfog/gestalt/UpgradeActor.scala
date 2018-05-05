@@ -18,9 +18,9 @@ class UpgradeActor @Inject() () extends PersistentActor {
     isFailed = false
   )
 
-  var currentPlan: String = _
+  var currentPlan: Seq[String] = _
 
-  var currentLog: String = _
+  val currentLog = scala.collection.mutable.ListBuffer.empty[String]
 
   override def receiveRecover: Receive = {
     case evt: Event => evt match {
@@ -69,18 +69,17 @@ class UpgradeActor @Inject() () extends PersistentActor {
       }
     case ComputePlan =>
       sender() ! true
-      persist(UpdatePlan(
-        """Backup database
-          |Upgrade core service gestalt-security from galacticfog/gestalt-security:release-1.5.0 to galacticfog/gestalt-security:release-1.6.0
-          |Upgrade core service gestalt-meta from galacticfog/gestalt-meta:release-1.5.0 to galacticfog/gestalt-meta:release-1.6.0
-          |Upgrade core service UI from galacticfog/gestalt-ui-react:release-1.5.0 to galacticfog/gestalt-ui-react:release-1.6.0
-          |Migrate meta schema: V2 -> V4
-          |Ugprade provider nodejs-executor from galacticfog/gestalt-laser-executor-nodejs:release-1.5.0 to galacticfog/gestalt-laser-executor-nodejs:release-1.6.0
-          |WARNING: provider nashorn-executor using galacticfog/gestalt-laser-executor-nashorn:release-1.5.1-custom
-          |Upgrade provider nashorn-executor from galacticfog/gestalt-laser-executor-nashorn:release-1.5.1-custom to galacticfog/gestalt-laser-executor-nashorn:release-1.6.0
-          |Upgrade provider lsr from galacticfog/gestalt-laser:release-1.5.0 to galacticfog/gestalt-laser:release-1.6.0
-          |Upgrade provider kong from galacticfog/gestalt-kong:release-1.5.0 to galacticfog/gestalt-laser:release-1.6.0
-        """.stripMargin, true)) {
+      persist(UpdatePlan(Seq(
+          "Backup database",
+          "Upgrade core service gestalt-security from galacticfog/gestalt-security:release-1.5.0 to galacticfog/gestalt-security:release-1.6.0",
+          "Upgrade core service gestalt-meta from galacticfog/gestalt-meta:release-1.5.0 to galacticfog/gestalt-meta:release-1.6.0",
+          "Upgrade core service UI from galacticfog/gestalt-ui-react:release-1.5.0 to galacticfog/gestalt-ui-react:release-1.6.0",
+          "Migrate meta schema: V2 -> V4",
+          "Ugprade provider nodejs-executor from galacticfog/gestalt-laser-executor-nodejs:release-1.5.0 to galacticfog/gestalt-laser-executor-nodejs:release-1.6.0",
+          "WARNING: provider nashorn-executor using galacticfog/gestalt-laser-executor-nashorn:release-1.5.1-custom",
+          "Upgrade provider nashorn-executor from galacticfog/gestalt-laser-executor-nashorn:release-1.5.1-custom to galacticfog/gestalt-laser-executor-nashorn:release-1.6.0",
+          "Upgrade provider lsr from galacticfog/gestalt-laser:release-1.5.0 to galacticfog/gestalt-laser:release-1.6.0",
+          "Upgrade provider kong from galacticfog/gestalt-kong:release-1.5.0 to galacticfog/gestalt-laser:release-1.6.0"), true)) {
         evt => updatePlan(evt)
       }
   }
@@ -102,15 +101,15 @@ class UpgradeActor @Inject() () extends PersistentActor {
         isComplete = false,
         isFailed = false
       )
-      currentLog =
-        """Backing up database...
-          |Backup complete.
-          |Backup available from https://gtw1.galactic-equity.com/upgrade/7401e17a-ed9a-447c-941c-893ed4d40ca5/database.tgz
-          |Upgrading security from galacticfog/gestalt-security:release-1.5.0 to galacticfog/gestalt-security:release-1.6.0
-          |Security upgraded.
-          |Security healthy.
-          |Upgrading meta from galacticfog/gestalt-meta:release-1.5.0 to galacticfog/gestalt-meta:release-1.6.0
-        """.stripMargin
+      currentLog ++= Seq(
+        "Backing up database...",
+        "Backup complete.",
+        "Backup available from https://gtw1.galactic-equity.com/upgrade/7401e17a-ed9a-447c-941c-893ed4d40ca5/database.tgz",
+        "Upgrading security from galacticfog/gestalt-security:release-1.5.0 to galacticfog/gestalt-security:release-1.6.0",
+        "Security upgraded.",
+        "Security healthy.",
+        "Upgrading meta from galacticfog/gestalt-meta:release-1.5.0 to galacticfog/gestalt-meta:release-1.6.0"
+      )
     case UpgradeCompleted =>
       currentState = currentState.copy(
         isRunning = false,
@@ -141,7 +140,7 @@ object UpgradeActor {
 
   sealed trait Event
   sealed trait CompletionEvent extends Event
-  case class UpdatePlan(plan: String, hasWarnings: Boolean) extends Event
+  case class UpdatePlan(plan: Seq[String], hasWarnings: Boolean) extends Event
 
   case object UpgradeStarted extends CompletionEvent
   case object UpgradeFailed extends CompletionEvent
