@@ -1,13 +1,15 @@
 package com.galacticfog.gestalt
 
+import akka.actor.ActorRef
 import akka.actor.Status.Failure
 import akka.persistence.PersistentActor
-import javax.inject.Inject
+import javax.inject.{Inject, Named}
 import play.api.libs.json.{Format, Json}
 
-class UpgradeActor @Inject() () extends PersistentActor {
+class UpgradeManager @Inject()( @Named(Upgrader.name) upgrader: ActorRef,
+                                @Named(Planner.actorName) planner: ActorRef ) extends PersistentActor {
 
-  import UpgradeActor._
+  import UpgradeManager._
 
   var currentState = Status(
     hasPlan = false,
@@ -84,7 +86,7 @@ class UpgradeActor @Inject() () extends PersistentActor {
       }
   }
 
-  override def persistenceId: String = "upgrade-actor"
+  override def persistenceId: String = "upgrade-manager"
 
   private[this] def updatePlan(e: UpdatePlan): Unit = {
     currentPlan = e.plan
@@ -126,7 +128,9 @@ class UpgradeActor @Inject() () extends PersistentActor {
 
 }
 
-object UpgradeActor {
+object UpgradeManager {
+
+  val actorName = "upgrade-manager"
 
   case class BadRequestException(msg: String) extends RuntimeException(msg)
 

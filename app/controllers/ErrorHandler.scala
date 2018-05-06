@@ -1,6 +1,6 @@
 package controllers
 
-import com.galacticfog.gestalt.UpgradeActor.BadRequestException
+import com.galacticfog.gestalt.UpgradeManager.BadRequestException
 import play.api.http.HttpErrorHandler
 import play.api.libs.json.Json
 import play.api.mvc._
