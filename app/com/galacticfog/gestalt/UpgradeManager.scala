@@ -6,7 +6,7 @@ import akka.persistence.PersistentActor
 import javax.inject.{Inject, Named}
 import play.api.libs.json.{Format, Json}
 
-class UpgradeManager @Inject()( @Named(Upgrader.name) upgrader: ActorRef,
+class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
                                 @Named(Planner.actorName) planner: ActorRef ) extends PersistentActor {
 
   import UpgradeManager._
@@ -130,7 +130,7 @@ class UpgradeManager @Inject()( @Named(Upgrader.name) upgrader: ActorRef,
 
 object UpgradeManager {
 
-  val actorName = "upgrade-manager"
+  final val actorName = "upgrade-manager"
 
   case class BadRequestException(msg: String) extends RuntimeException(msg)
 

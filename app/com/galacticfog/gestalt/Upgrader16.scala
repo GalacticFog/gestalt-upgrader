@@ -7,12 +7,14 @@ import javax.inject.Inject
 import com.galacticfog.gestalt.Upgrader._
 import com.google.inject.name.Named
 
+import scala.reflect.classTag
 import scala.reflect.ClassTag
+
 
 trait Upgrader
 
 object Upgrader {
-  val actorName = "upgrader"
+  final val actorName = "upgrader"
 
   sealed trait UpgraderState extends FSMState
   case object Stopped extends UpgraderState {
@@ -40,12 +42,17 @@ object Upgrader {
                            failedStep: Option[(UpgradeStep, Throwable)] )
 }
 
-class Upgrader16 @Inject()(@Named("executor") executor: ActorRef)
-                          (implicit val domainEventClassTag: ClassTag[UpgraderEvent])
+class Upgrader16 @Inject()(@Named(Executor.actorName) executor: ActorRef)
   extends PersistentFSM[UpgraderState,UpgraderData,UpgraderEvent] with Upgrader {
+
+  override def domainEventClassTag: ClassTag[UpgraderEvent] = classTag[UpgraderEvent]
 
   override def persistenceId: String = "upgrade-1-6-actor"
 
-  override def applyEvent(domainEvent: UpgraderEvent, currentData: UpgraderData): UpgraderData = ???
+  startWith(Stopped, UpgraderData(Seq.empty, Seq.empty, None, None))
+
+  override def applyEvent(event: UpgraderEvent, currentData: UpgraderData): UpgraderData = {
+    currentData
+  }
 
 }

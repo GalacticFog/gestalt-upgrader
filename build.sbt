@@ -23,6 +23,7 @@ dockerCommands := dockerCommands.value.flatMap {
 
 
 libraryDependencies ++= Seq(
+  ws,
   guice,
   "com.typesafe.akka" %% "akka-persistence" % "2.5.12",
   "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
@@ -30,6 +31,7 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  specs2 % Test
+  specs2 % Test,
+  "com.typesafe.akka" %% "akka-testkit" % "2.5.12" % Test
 )
 
