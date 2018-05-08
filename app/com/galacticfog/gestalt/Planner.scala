@@ -28,7 +28,24 @@ class Planner16 @Inject() ( caasClientFactory: CaasClientFactory,
   val providerUpgrades: Map[UUID, (MetaProviderProto, MetaProviderProto)] = Map(
     ResourceIds.KongGateway    -> (MetaProviderProto(s"galacticfog/kong:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/kong:release-${targetVersion}")),
     ResourceIds.LambdaProvider -> (MetaProviderProto(s"galacticfog/gestalt-laser:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/gestalt-laser:release-${targetVersion}")),
-    ResourceIds.GatewayManager -> (MetaProviderProto(s"galacticfog/gestalt-api-gateway:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/gestalt-api-gateway:release-${targetVersion}"))
+    ResourceIds.GatewayManager -> (MetaProviderProto(s"galacticfog/gestalt-api-gateway:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/gestalt-api-gateway:release-${targetVersion}")),
+    ResourceIds.GoLangExecutor    -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-go:release-${expectedVersion}"),     MetaProviderProto(s"galacticfog/gestalt-laser-executor-go:release-${targetVersion}")),
+    ResourceIds.JavaExecutor      -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-jvm:release-${expectedVersion}"),    MetaProviderProto(s"galacticfog/gestalt-laser-executor-jvm:release-${targetVersion}")),
+    ResourceIds.NashornExecutor   -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-js:release-${expectedVersion}"),     MetaProviderProto(s"galacticfog/gestalt-laser-executor-js:release-${targetVersion}")),
+    ResourceIds.NodeJsExecutor    -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-nodejs:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/gestalt-laser-executor-nodejs:release-${targetVersion}")),
+    ResourceIds.PythonExecutor    -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-python:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/gestalt-laser-executor-python:release-${targetVersion}")),
+    ResourceIds.RubyExecutor      -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-ruby:release-${expectedVersion}"),   MetaProviderProto(s"galacticfog/gestalt-laser-executor-ruby:release-${targetVersion}")),
+    ResourceIds.CsharpExecutor    -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-dotnet:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/gestalt-laser-executor-dotnet:release-${targetVersion}"))
+  )
+
+  val executors: Set[UUID] = Set(
+    ResourceIds.GoLangExecutor,
+    ResourceIds.JavaExecutor,
+    ResourceIds.NashornExecutor,
+    ResourceIds.NodeJsExecutor,
+    ResourceIds.PythonExecutor,
+    ResourceIds.RubyExecutor,
+    ResourceIds.CsharpExecutor
   )
 
   override def receive: Receive = {
@@ -44,16 +61,23 @@ class Planner16 @Inject() ( caasClientFactory: CaasClientFactory,
         ui   <- fUI
         // Providers
         providers <- metaClient.listProviders
-        updatedProviders = providers.flatMap {
+        (execs, provs) = providers.partition(p => executors.contains(p.providerType))
+        updateExecs = execs.flatMap {
           p => providerUpgrades.get(p.providerType) map {
-            case (exp,tgt) => UpgradeProvider(exp, tgt, p, p.hasContainers)
+            case (exp,tgt) => UpgradeExecutor(exp, tgt, p)
+          }
+        }
+        updatedProviders = provs.flatMap {
+          p => providerUpgrades.get(p.providerType) map {
+            case (exp,tgt) => UpgradeProvider(exp, tgt, p)
           }
         }
       } yield UpgradePlan(Seq(
+        BackupDatabase,
         UpgradeBaseService("security", s"galacticfog/gestalt-security:release-${expectedVersion}", s"galacticfog/gestalt-security:release-${targetVersion}", sec),
         UpgradeBaseService(    "meta",     s"galacticfog/gestalt-meta:release-${expectedVersion}",     s"galacticfog/gestalt-meta:release-${targetVersion}", meta),
         UpgradeBaseService(      "ui", s"galacticfog/gestalt-ui-react:release-${expectedVersion}", s"galacticfog/gestalt-ui-react:release-${targetVersion}", ui)
-      ) ++ updatedProviders)
+      ) ++ updateExecs ++ updatedProviders)
 
       plan pipeTo sender()
   }
