@@ -5,7 +5,6 @@ import java.util.UUID
 package object gestalt {
 
   object ResourceIds {
-
     val ActionProvider = UUID.fromString("bb3dc8bb-7a9b-43aa-b9db-aaa44fb5d099")
     val Api = UUID.fromString("df4bf8b5-170f-453e-9526-c37c898d96c9")
     val ApiEndpoint = UUID.fromString("f3f1ad01-73f1-48a8-9d24-e41d8a202545")
@@ -79,4 +78,130 @@ package object gestalt {
     val TypeAction = UUID.fromString("bc83a824-173a-40fd-a0cf-f8ce94d1d3fe")
     val VisibilityType = UUID.fromString("4f952c9a-0daf-4671-b298-56768b1c795f")
   }
+
+  object Resources {
+    val Resource          = "Gestalt::Resource"
+    val Api               = "Gestalt::Resource::Api"
+    val ApiEndpoint       = "Gestalt::Resource::ApiEndpoint"
+    val Blueprint         = "Gestalt::Resource::Blueprint"
+    val Container         = "Gestalt::Resource::Container"
+    val DataContainer     = "Gestalt::Resource::DataContainer"
+    val Domain            = "Gestalt::Resource::Domain"
+    val Endpoint          = "Gestalt::Resource::Endpoint"
+    val MessageEndpoint   = "Gestalt::Resource::Endpoint::MessageEndpoint"
+    val Entitlement       = "Gestalt::Resource::Entitlement"
+    val Environment       = "Gestalt::Resource::Environment"
+    val Group             = "Gestalt::Resource::Group"
+    val Integration       = "Gestalt::Resource::Integration"
+    val License           = "Gestalt::Resource::License"
+    val Lambda            = "Gestalt::Resource::Node::Lambda"
+    val Org               = "Gestalt::Resource::Organization"
+    val Policy            = "Gestalt::Resource::Policy"
+    val ProviderAction    = "Gestalt::Resource::ProviderAction"
+    val ResourceContainer = "Gestalt::Resource::ResourceContainer"
+    val Rule              = "Gestalt::Resource::Rule"
+    val RuleConfig        = "Gestalt::Resource::Rule::Config"
+    val RuleEvent         = "Gestalt::Resource::Rule::Event"
+    val RuleLimit         = "Gestalt::Resource::Rule::Limit"
+    val Runnable          = "Gestalt::Resource::Runnable"
+    val Secret            = "Gestalt::Resource::Secret"
+    val EnvironmentType   = "Gestalt::Resource::Type::Environment"
+    val UiDescriptor      = "Gestalt::Resource::UiDescriptor"
+    val User              = "Gestalt::Resource::User"
+    val Workspace         = "Gestalt::Resource::Workspace"
+
+    val Configuration     = "Gestalt::Configuration"
+    val Provider          = "Gestalt::Configuration::Provider"
+    val ActionProvider    = "Gestalt::Configuration::Provider::ActionProvider"
+    val BlueprintProvider = "Gestalt::Configuration::Provider::Blueprint"
+    val CaasProvider      = "Gestalt::Configuration::Provider::CaaS"
+    val DcosProvider      = "Gestalt::Configuration::Provider::CaaS::DCOS"
+    val DockerProvider    = "Gestalt::Configuration::Provider::CaaS::Docker"
+    val KubeProvider      = "Gestalt::Configuration::Provider::CaaS::Kubernetes"
+    val DataProvider      = "Gestalt::Configuration::Provider::Data"
+    val PostgresProvider  = "Gestalt::Configuration::Provider::Data::PostgreSQL"
+    val EventsProvider    = "Gestalt::Configuration::Provider::Events"
+    val GatewayManager    = "Gestalt::Configuration::Provider::GatewayManager"
+    val KongGateway       = "Gestalt::Configuration::Provider::Kong"
+    val LambdaProvider    = "Gestalt::Configuration::Provider::Lambda"
+    val ExecutorProvider  = "Gestalt::Configuration::Provider::Lambda::Executor"
+    val BashExecutor      = "Gestalt::Configuration::Provider::Lambda::Executor::Bash"
+    val CsharpExecutor    = "Gestalt::Configuration::Provider::Lambda::Executor::CSharp"
+    val GoLangExecutor    = "Gestalt::Configuration::Provider::Lambda::Executor::GoLang"
+    val JavaExecutor      = "Gestalt::Configuration::Provider::Lambda::Executor::Java"
+    val NashornExecutor   = "Gestalt::Configuration::Provider::Lambda::Executor::Nashorn"
+    val NodeJsExecutor    = "Gestalt::Configuration::Provider::Lambda::Executor::NodeJS"
+    val PythonExecutor    = "Gestalt::Configuration::Provider::Lambda::Executor::Python"
+    val RubyExecutor      = "Gestalt::Configuration::Provider::Lambda::Executor::Ruby"
+    val ScalaExecutor     = "Gestalt::Configuration::Provider::Lambda::Executor::Scala"
+    val LdapProvider      = "Gestalt::Configuration::Provider::Ldap"
+    val Logging           = "Gestalt::Configuration::Provider::Logging"
+    val MessageProvider   = "Gestalt::Configuration::Provider::Messaging"
+    val RabbitProvider    = "Gestalt::Configuration::Provider::Messaging::RabbitMQ"
+    val PolicyProvider    = "Gestalt::Configuration::Provider::Policy"
+    val SecurityProvider  = "Gestalt::Configuration::Provider::Security"
+  }
+
+  def resourceId(tpe: String): UUID = tpe match {
+    case Resources.ActionProvider     => ResourceIds.ActionProvider
+    case Resources.Api                => ResourceIds.Api
+    case Resources.ApiEndpoint        => ResourceIds.ApiEndpoint
+    case Resources.BashExecutor       => ResourceIds.BashExecutor
+    case Resources.Blueprint          => ResourceIds.Blueprint
+    case Resources.BlueprintProvider  => ResourceIds.BlueprintProvider
+    case Resources.CaasProvider       => ResourceIds.CaasProvider
+    case Resources.Configuration      => ResourceIds.Configuration
+    case Resources.Container          => ResourceIds.Container
+    case Resources.CsharpExecutor     => ResourceIds.CsharpExecutor
+    case Resources.DataContainer      => ResourceIds.DataContainer
+    case Resources.DataProvider       => ResourceIds.DataProvider
+    case Resources.DcosProvider       => ResourceIds.DcosProvider
+    case Resources.DockerProvider     => ResourceIds.DockerProvider
+    case Resources.Domain             => ResourceIds.Domain
+    case Resources.Endpoint           => ResourceIds.Endpoint
+    case Resources.Entitlement        => ResourceIds.Entitlement
+    case Resources.Environment        => ResourceIds.Environment
+    case Resources.EventsProvider     => ResourceIds.EventsProvider
+    case Resources.ExecutorProvider   => ResourceIds.ExecutorProvider
+    case Resources.GatewayManager     => ResourceIds.GatewayManager
+    case Resources.GoLangExecutor     => ResourceIds.GoLangExecutor
+    case Resources.Group              => ResourceIds.Group
+    case Resources.Integration        => ResourceIds.Integration
+    case Resources.JavaExecutor       => ResourceIds.JavaExecutor
+    case Resources.KongGateway        => ResourceIds.KongGateway
+    case Resources.KubeProvider       => ResourceIds.KubeProvider
+    case Resources.Lambda             => ResourceIds.Lambda
+    case Resources.LambdaProvider     => ResourceIds.LambdaProvider
+    case Resources.LdapProvider       => ResourceIds.LdapProvider
+    case Resources.License            => ResourceIds.License
+    case Resources.Logging            => ResourceIds.LoggingProvider
+    case Resources.MessageEndpoint    => ResourceIds.MessageEndpoint
+    case Resources.MessageProvider    => ResourceIds.MessageProvider
+    case Resources.NashornExecutor    => ResourceIds.NashornExecutor
+    case Resources.NodeJsExecutor     => ResourceIds.NodeJsExecutor
+    case Resources.Org                => ResourceIds.Org
+    case Resources.Policy             => ResourceIds.Policy
+    case Resources.PolicyProvider     => ResourceIds.PolicyProvider
+    case Resources.PostgresProvider   => ResourceIds.PostgresProvider
+    case Resources.Provider           => ResourceIds.Provider
+    case Resources.ProviderAction     => ResourceIds.ProviderAction
+    case Resources.PythonExecutor     => ResourceIds.PythonExecutor
+    case Resources.RabbitProvider     => ResourceIds.RabbitProvider
+    case Resources.Resource           => ResourceIds.Resource
+    case Resources.ResourceContainer  => ResourceIds.ResourceContainer
+    case Resources.RubyExecutor       => ResourceIds.RubyExecutor
+    case Resources.Rule               => ResourceIds.Rule
+    case Resources.RuleConfig         => ResourceIds.RuleConfig
+    case Resources.RuleEvent          => ResourceIds.RuleEvent
+    case Resources.RuleLimit          => ResourceIds.RuleLimit
+    case Resources.Runnable           => ResourceIds.Runnable
+    case Resources.ScalaExecutor      => ResourceIds.ScalaExecutor
+    case Resources.Secret             => ResourceIds.Secret
+    case Resources.SecurityProvider   => ResourceIds.SecurityProvider
+    case Resources.UiDescriptor       => ResourceIds.UiDescriptor
+    case Resources.User               => ResourceIds.User
+    case Resources.Workspace          => ResourceIds.Workspace
+    case s => throw new RuntimeException(s"could not find resource_type with label '$s'")
+  }
+
 }

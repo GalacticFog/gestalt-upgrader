@@ -32,6 +32,7 @@ libraryDependencies ++= Seq(
 
 libraryDependencies ++= Seq(
   specs2 % Test,
-  "com.typesafe.akka" %% "akka-testkit" % "2.5.12" % Test
+  "com.typesafe.akka" %% "akka-testkit" % "2.5.12" % Test,
+  "de.leanovate.play-mockws" %% "play-mockws" % "2.6.2" % Test
 )
 

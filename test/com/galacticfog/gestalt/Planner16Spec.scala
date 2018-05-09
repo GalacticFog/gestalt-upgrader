@@ -56,10 +56,10 @@ class Planner16Spec extends Specification with Mockito {
         mockCaasClient.getCurrentImage("ui") returns Future.successful("galacticfog/gestalt-ui-react:release-1.5.3")
 
         val currentProviders = Seq(
-          MetaProvider("root", "default-kong-provider",  uuid, ResourceIds.KongGateway,    "galacticfog/kong:release-1.5.1"),
-          MetaProvider("root", "default-laser-executor-jvm", uuid, ResourceIds.JavaExecutor, "galacticfog/gestalt-laser-executor-jvm:release-1.5.2.1"),
-          MetaProvider("root", "default-laser-provider", uuid, ResourceIds.LambdaProvider, "galacticfog/gestalt-laser:release-1.5.2"),
-          MetaProvider("test", "default-gwm",            uuid, ResourceIds.GatewayManager, "galacticfog/gestalt-api-gateway:release-1.5.3")
+          MetaProvider("root", "default-kong-provider",  uuid, ResourceIds.KongGateway,      Some("galacticfog/kong:release-1.5.1")),
+          MetaProvider("root", "default-laser-executor-jvm", uuid, ResourceIds.JavaExecutor, Some("galacticfog/gestalt-laser-executor-jvm:release-1.5.2.1")),
+          MetaProvider("root", "default-laser-provider", uuid, ResourceIds.LambdaProvider,   Some("galacticfog/gestalt-laser:release-1.5.2")),
+          MetaProvider("test", "default-gwm",            uuid, ResourceIds.GatewayManager,   Some("galacticfog/gestalt-api-gateway:release-1.5.3"))
         )
 
         mockMetaClient.listProviders returns Future.successful(currentProviders)

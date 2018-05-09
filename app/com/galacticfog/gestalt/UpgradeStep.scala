@@ -2,9 +2,11 @@ package com.galacticfog.gestalt
 
 import java.util.UUID
 
+import play.api.libs.json.{JsObject, Json}
+
 case class MetaProviderProto(image: String)
-case class MetaProvider(fqon: String, name: String, id: UUID, providerType: UUID, image: String) {
-  def getProto = MetaProviderProto(image)
+case class MetaProvider(fqon: String, name: String, id: UUID, providerType: UUID, image: Option[String], config: JsObject = Json.obj()) {
+  def getProto = MetaProviderProto(image getOrElse "")
 }
 
 sealed trait UpgradeStep {

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "38eec176-d43b-423c-9a28-e4b13cb838c4",
+    "name": "default-rabbit",
+    "org": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "properties": {
+        "fqon": "engineering"
+      },
+      "typeId": "23ba3299-b04e-4c5c-9b3d-64939b22944e"
+    },
+    "properties": {
+      "config": {
+        "env": {
+          "private": {},
+          "public": {
+            "SERVICE_HOST": "rabbit.test-galacticfog-com.marathon.mesos",
+            "SERVICE_PORT": "5672"
+          }
+        }
+      },
+      "services": [{
+        "container_spec": {
+          "properties": {
+            "image": "rabbit:latest"
+          }
+        }
+      }]
+    },
+    "resource_state": "Gestalt::Resource::State::Active",
+    "resource_type": "Gestalt::Configuration::Provider::Messaging::RabbitMQ"
+  },
+  {
+    "id": "02480d90-bd62-4a37-a1c2-5be0afeab5ff",
+    "name": "jvm-executor-executor",
+    "org": {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "properties": {
+        "fqon": "engineering"
+      },
+      "typeId": "23ba3299-b04e-4c5c-9b3d-64939b22944e"
+    },
+    "properties": {
+      "config": {
+        "env": {
+          "private": {},
+          "public": {
+            "CMD": "bin/gestalt-laser-executor-jvm",
+            "IMAGE": "galacticfog/gestalt-laser-executor-jvm:1.21.6-SNAPSHOT-a797b743",
+            "NAME": "jvm-executor",
+            "RUNTIME": "java;scala"
+          }
+        }
+      },
+      "parent": {
+        "id": "22222222-2222-2222-2222-222222222222",
+        "name": "engineering",
+        "typeId": "23ba3299-b04e-4c5c-9b3d-64939b22944e"
+      },
+      "services": []
+    },
+    "resource_state": "Gestalt::Resource::State::Active",
+    "resource_type": "Gestalt::Configuration::Provider::Lambda::Executor::Java"
+  }
+]

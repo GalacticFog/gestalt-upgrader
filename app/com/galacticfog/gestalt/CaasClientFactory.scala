@@ -15,11 +15,11 @@ trait CaasClientFactory {
 }
 
 @Singleton
-class DefaultCaasClientFactory @Inject() (ws: WSClient, config: Configuration) extends CaasClientFactory {
-  override def getClient: CaasClient = new DefaultCaasClient(ws, config)
+class DefaultCaasClientFactory @Inject() (ws: WSClient, config: Configuration, meta: MetaClient) extends CaasClientFactory {
+  override def getClient: CaasClient = new DefaultCaasClient(ws, config, meta)
 }
 
-class DefaultCaasClient(ws: WSClient, config: Configuration) extends CaasClient {
+class DefaultCaasClient(ws: WSClient, config: Configuration, meta: MetaClient) extends CaasClient {
   // TODO
   override def getCurrentImage(serviceName: String): Future[String] = Future.failed(new NotImplementedError)
 }

@@ -1,0 +1,56 @@
+[
+    {
+        "description": "Galactic Fog",
+        "id": "11111111-1111-1111-1111-111111111111",
+        "name": "root",
+        "org": {
+            "href": "https://meta.test.galacticfog.com/root",
+            "id": "c199174d-823f-484c-99a1-ffd3a1c065f9",
+            "properties": {
+                "fqon": "root"
+            },
+            "typeId": "23ba3299-b04e-4c5c-9b3d-64939b22944e"
+        },
+        "properties": {
+            "children": [
+                {
+                    "href": "/engineering",
+                    "id": "22222222-2222-2222-2222-222222222222",
+                    "name": "engineering",
+                    "typeId": "23ba3299-b04e-4c5c-9b3d-64939b22944e"
+                }
+            ],
+            "env": {
+                "META_ASSET_BASE": "https://meta.test.galacticfog.com"
+            },
+            "fqon": "root"
+        },
+        "resource_state": "Gestalt::Resource::State::Active",
+        "resource_type": "Gestalt::Resource::Organization"
+    },
+    {
+        "description": "Engineering",
+        "id": "22222222-2222-2222-2222-222222222222",
+        "name": "engineering",
+        "org": {
+            "href": "https://meta.test.galacticfog.com/root",
+            "id": "c199174d-823f-484c-99a1-ffd3a1c065f9",
+            "properties": {
+                "fqon": "root"
+            },
+            "typeId": "23ba3299-b04e-4c5c-9b3d-64939b22944e"
+        },
+        "properties": {
+            "env": {},
+            "fqon": "engineering",
+            "parent": {
+                "href": "/root",
+                "id": "c199174d-823f-484c-99a1-ffd3a1c065f9",
+                "name": "root",
+                "typeId": "23ba3299-b04e-4c5c-9b3d-64939b22944e"
+            }
+        },
+        "resource_state": "Gestalt::Resource::State::Active",
+        "resource_type": "Gestalt::Resource::Organization"
+    }
+]
