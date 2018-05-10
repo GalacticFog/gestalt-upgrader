@@ -2,7 +2,7 @@ package controllers
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.galacticfog.gestalt.UpgradeManager
+import com.galacticfog.gestalt.{UpgradeManager, UpgradeStep}
 import javax.inject._
 import play.api.libs.json.Json
 import play.api.mvc._
@@ -19,7 +19,7 @@ class ApiController @Inject()( cc: ControllerComponents,
   implicit val ec = cc.executionContext
 
   def getPlan() = Action.async {
-    (upgradeManager ? UpgradeManager.GetPlan).mapTo[Seq[String]].map(s => Ok(Json.toJson(s)))
+    (upgradeManager ? UpgradeManager.GetPlan).mapTo[Seq[UpgradeStep]].map(s => Ok(Json.toJson(s.map(_.message))))
   }
 
   def getLog(debug: Boolean) = Action.async {

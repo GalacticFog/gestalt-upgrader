@@ -25,6 +25,7 @@ dockerCommands := dockerCommands.value.flatMap {
 libraryDependencies ++= Seq(
   ws,
   guice,
+  "ch.qos.logback" % "logback-classic" % "1.2.3",
   "com.typesafe.akka" %% "akka-persistence" % "2.5.12",
   "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
   "net.codingwell"  %% "scala-guice" 					 % "4.1.1"

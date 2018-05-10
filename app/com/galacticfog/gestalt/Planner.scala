@@ -2,7 +2,7 @@ package com.galacticfog.gestalt
 
 import java.util.UUID
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorLogging}
 import akka.pattern.pipe
 import javax.inject.Inject
 
@@ -14,7 +14,7 @@ object Planner {
 }
 
 class Planner16 @Inject() ( caasClientFactory: CaasClientFactory,
-                            metaClient: MetaClient ) extends Actor {
+                            metaClient: MetaClient ) extends Actor with ActorLogging {
 
   import Planner._
 
@@ -50,9 +50,10 @@ class Planner16 @Inject() ( caasClientFactory: CaasClientFactory,
 
   override def receive: Receive = {
     case ComputePlan =>
-      val fMeta = caasClient.getCurrentImage("meta")
-      val fSec  = caasClient.getCurrentImage("security")
-      val fUI   = caasClient.getCurrentImage("ui")
+      log.info("received ComputePlan, beginning plan computation...")
+      val fMeta = caasClient.flatMap(_.getCurrentImage("meta"))
+      val fSec  = caasClient.flatMap(_.getCurrentImage("security"))
+      val fUI   = caasClient.flatMap(_.getCurrentImage("ui-react"))
 
       val plan = for {
         // BASE

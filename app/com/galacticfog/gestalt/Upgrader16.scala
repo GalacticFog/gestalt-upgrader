@@ -49,10 +49,16 @@ class Upgrader16 @Inject()(@Named(Executor.actorName) executor: ActorRef)
 
   override def persistenceId: String = "upgrade-1-6-actor"
 
-  startWith(Stopped, UpgraderData(Seq.empty, Seq.empty, None, None))
-
   override def applyEvent(event: UpgraderEvent, currentData: UpgraderData): UpgraderData = {
     currentData
+  }
+
+  startWith(Stopped, UpgraderData(Seq.empty, Seq.empty, None, None))
+
+  when(Stopped) {
+    case Event(e, d) =>
+      log.info(e.toString)
+      stay
   }
 
 }

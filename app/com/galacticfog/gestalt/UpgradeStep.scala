@@ -30,7 +30,7 @@ case class UpgradeBaseService(name: String, expected: String, target: String, ac
 case class UpgradeExecutor(expected: MetaProviderProto, target: MetaProviderProto, actual: MetaProvider) extends UpgradeStep {
   override def warning: Boolean = expected != actual.getProto
   override def message: String = {
-    val msg = s"Upgrade laser executor ${actual.fqon}/${actual.name} (${actual.id}) from ${actual.image} to ${target.image}"
+    val msg = s"Upgrade laser executor ${actual.fqon}/${actual.name} (${actual.id}) from ${(actual.config \ "env" \ "public" \ "IMAGE").asOpt[String].getOrElse("none")} to ${target.image}"
     if (warning) s"WARNING: " + msg + s" (expected image ${expected.image})" else msg
   }
 }
@@ -38,7 +38,7 @@ case class UpgradeExecutor(expected: MetaProviderProto, target: MetaProviderProt
 case class UpgradeProvider(expected: MetaProviderProto, target: MetaProviderProto, actual: MetaProvider) extends UpgradeStep {
   override def warning: Boolean = expected != actual.getProto
   override def message: String = {
-    val msg = s"Upgrade meta provider ${actual.fqon}/${actual.name} (${actual.id}) from ${actual.image} to ${target.image}"
+    val msg = s"Upgrade meta provider ${actual.fqon}/${actual.name} (${actual.id}) from ${actual.image.getOrElse("none")} to ${target.image}"
     if (warning) s"WARNING: " + msg + s" (expected image ${expected.image})" else msg
   }
 }

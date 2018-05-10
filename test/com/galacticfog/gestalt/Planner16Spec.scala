@@ -33,7 +33,7 @@ class Planner16Spec extends Specification with Mockito {
         bindActor[Upgrader16](Upgrader.actorName)
         bindActor[Executor](Executor.actorName)
         val mockClientFactory = mock[CaasClientFactory]
-        mockClientFactory.getClient returns mockCaasClient
+        mockClientFactory.getClient returns Future.successful(mockCaasClient)
         bind[CaasClientFactory].toInstance(mockClientFactory)
         bind[MetaClient].toInstance(mockMetaClient)
       }
@@ -52,8 +52,8 @@ class Planner16Spec extends Specification with Mockito {
         val planner: ActorRef = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(Planner.actorName))
 
         mockCaasClient.getCurrentImage("security") returns Future.successful("galacticfog/gestalt-security:release-1.5.1")
-        mockCaasClient.getCurrentImage("meta") returns Future.successful("galacticfog/gestalt-meta:release-1.5.2")
-        mockCaasClient.getCurrentImage("ui") returns Future.successful("galacticfog/gestalt-ui-react:release-1.5.3")
+        mockCaasClient.getCurrentImage("meta")     returns Future.successful("galacticfog/gestalt-meta:release-1.5.2")
+        mockCaasClient.getCurrentImage("ui-react") returns Future.successful("galacticfog/gestalt-ui-react:release-1.5.3")
 
         val currentProviders = Seq(
           MetaProvider("root", "default-kong-provider",  uuid, ResourceIds.KongGateway,      Some("galacticfog/kong:release-1.5.1")),

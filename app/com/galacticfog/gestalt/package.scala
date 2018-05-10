@@ -204,4 +204,68 @@ package object gestalt {
     case s => throw new RuntimeException(s"could not find resource_type with label '$s'")
   }
 
+  def resourceName(typeId: UUID) = {
+    typeId match {
+      case ResourceIds.ActionProvider     => Resources.ActionProvider
+      case ResourceIds.Api                => Resources.Api
+      case ResourceIds.ApiEndpoint        => Resources.ApiEndpoint
+      case ResourceIds.BashExecutor       => Resources.BashExecutor
+      case ResourceIds.Blueprint          => Resources.Blueprint
+      case ResourceIds.BlueprintProvider  => Resources.BlueprintProvider
+      case ResourceIds.CaasProvider       => Resources.CaasProvider
+      case ResourceIds.Configuration      => Resources.Configuration
+      case ResourceIds.Container          => Resources.Container
+      case ResourceIds.CsharpExecutor     => Resources.CsharpExecutor
+      case ResourceIds.DataContainer      => Resources.DataContainer
+      case ResourceIds.DataProvider       => Resources.DataProvider
+      case ResourceIds.DcosProvider       => Resources.DcosProvider
+      case ResourceIds.DockerProvider     => Resources.DockerProvider
+      case ResourceIds.Domain             => Resources.Domain
+      case ResourceIds.Endpoint           => Resources.Endpoint
+      case ResourceIds.Entitlement        => Resources.Entitlement
+      case ResourceIds.Environment        => Resources.Environment
+      case ResourceIds.EnvironmentType    => Resources.EnvironmentType
+      case ResourceIds.EventsProvider     => Resources.EventsProvider
+      case ResourceIds.ExecutorProvider   => Resources.ExecutorProvider
+      case ResourceIds.GatewayManager     => Resources.GatewayManager
+      case ResourceIds.GoLangExecutor     => Resources.GoLangExecutor
+      case ResourceIds.Group              => Resources.Group
+      case ResourceIds.Integration        => Resources.Integration
+      case ResourceIds.JavaExecutor       => Resources.JavaExecutor
+      case ResourceIds.KongGateway        => Resources.KongGateway
+      case ResourceIds.KubeProvider       => Resources.KubeProvider
+      case ResourceIds.Lambda             => Resources.Lambda
+      case ResourceIds.LambdaProvider     => Resources.LambdaProvider
+      case ResourceIds.License            => Resources.License
+      case ResourceIds.LoggingProvider    => Resources.Logging
+      case ResourceIds.MessageEndpoint    => Resources.MessageEndpoint
+      case ResourceIds.MessageProvider    => Resources.MessageProvider
+      case ResourceIds.NashornExecutor    => Resources.NashornExecutor
+      case ResourceIds.NodeJsExecutor     => Resources.NodeJsExecutor
+      case ResourceIds.Org                => Resources.Org
+      case ResourceIds.Policy             => Resources.Policy
+      case ResourceIds.PolicyProvider     => Resources.PolicyProvider
+      case ResourceIds.PostgresProvider   => Resources.PostgresProvider
+      case ResourceIds.Provider           => Resources.Provider
+      case ResourceIds.ProviderAction     => Resources.ProviderAction
+      case ResourceIds.PythonExecutor     => Resources.PythonExecutor
+      case ResourceIds.RabbitProvider     => Resources.RabbitProvider
+      case ResourceIds.Resource           => Resources.Resource
+      case ResourceIds.ResourceContainer  => Resources.ResourceContainer
+      case ResourceIds.RubyExecutor       => Resources.RubyExecutor
+      case ResourceIds.Rule               => Resources.Rule
+      case ResourceIds.RuleConfig         => Resources.RuleConfig
+      case ResourceIds.RuleEvent          => Resources.RuleEvent
+      case ResourceIds.RuleLimit          => Resources.RuleLimit
+      case ResourceIds.Runnable           => Resources.Runnable
+      case ResourceIds.ScalaExecutor      => Resources.ScalaExecutor
+      case ResourceIds.Secret             => Resources.Secret
+      case ResourceIds.SecurityProvider   => Resources.SecurityProvider
+      case ResourceIds.UiDescriptor       => Resources.UiDescriptor
+      case ResourceIds.User               => Resources.User
+      case ResourceIds.Workspace          => Resources.Workspace
+      case _ => s"resourceType[${typeId}]"
+    }
+  }
+
 }

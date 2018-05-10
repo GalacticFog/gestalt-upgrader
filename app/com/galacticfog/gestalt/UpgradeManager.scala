@@ -1,13 +1,13 @@
 package com.galacticfog.gestalt
 
-import akka.actor.ActorRef
+import akka.actor.{ActorLogging, ActorRef}
 import akka.actor.Status.Failure
 import akka.persistence.PersistentActor
 import javax.inject.{Inject, Named}
 import play.api.libs.json.{Format, Json}
 
 class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
-                                @Named(Planner.actorName) planner: ActorRef ) extends PersistentActor {
+                                @Named(Planner.actorName) planner: ActorRef ) extends PersistentActor with ActorLogging {
 
   import UpgradeManager._
 
@@ -20,15 +20,15 @@ class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
     isFailed = false
   )
 
-  var currentPlan: Seq[String] = _
+  var currentPlan: Seq[UpgradeStep] = _
 
   val currentLog = scala.collection.mutable.ListBuffer.empty[String]
 
   override def receiveRecover: Receive = {
-    case evt: Event => evt match {
-      case e: UpdatePlan => updatePlan(e)
-      case e: CompletionEvent => updateStatus(e)
-    }
+    case Planner.UpgradePlan(steps) =>
+      updatePlan(steps)
+    case e: CompletionEvent =>
+      updateStatus(e)
     case e => println(e)
   }
 
@@ -71,28 +71,20 @@ class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
       }
     case ComputePlan =>
       sender() ! true
-      persist(UpdatePlan(Seq(
-          "Backup database",
-          "Upgrade core service gestalt-security from galacticfog/gestalt-security:release-1.5.0 to galacticfog/gestalt-security:release-1.6.0",
-          "Upgrade core service gestalt-meta from galacticfog/gestalt-meta:release-1.5.0 to galacticfog/gestalt-meta:release-1.6.0",
-          "Upgrade core service UI from galacticfog/gestalt-ui-react:release-1.5.0 to galacticfog/gestalt-ui-react:release-1.6.0",
-          "Migrate meta schema: V2 -> V4",
-          "Ugprade provider nodejs-executor from galacticfog/gestalt-laser-executor-nodejs:release-1.5.0 to galacticfog/gestalt-laser-executor-nodejs:release-1.6.0",
-          "WARNING: provider nashorn-executor using galacticfog/gestalt-laser-executor-nashorn:release-1.5.1-custom",
-          "Upgrade provider nashorn-executor from galacticfog/gestalt-laser-executor-nashorn:release-1.5.1-custom to galacticfog/gestalt-laser-executor-nashorn:release-1.6.0",
-          "Upgrade provider lsr from galacticfog/gestalt-laser:release-1.5.0 to galacticfog/gestalt-laser:release-1.6.0",
-          "Upgrade provider kong from galacticfog/gestalt-kong:release-1.5.0 to galacticfog/gestalt-laser:release-1.6.0"), true)) {
-        evt => updatePlan(evt)
+      planner ! Planner.ComputePlan
+    case evt: Planner.UpgradePlan =>
+      persist(evt) {
+        evt => updatePlan(evt.steps)
       }
   }
 
   override def persistenceId: String = "upgrade-manager"
 
-  private[this] def updatePlan(e: UpdatePlan): Unit = {
-    currentPlan = e.plan
+  private[this] def updatePlan(steps: Seq[UpgradeStep]): Unit = {
+    currentPlan = steps
     currentState = currentState.copy(
       hasPlan = true,
-      planWarnings = e.hasWarnings
+      planWarnings = steps.exists(_.warning)
     )
   }
 
@@ -144,7 +136,6 @@ object UpgradeManager {
 
   sealed trait Event
   sealed trait CompletionEvent extends Event
-  case class UpdatePlan(plan: Seq[String], hasWarnings: Boolean) extends Event
 
   case object UpgradeStarted extends CompletionEvent
   case object UpgradeFailed extends CompletionEvent

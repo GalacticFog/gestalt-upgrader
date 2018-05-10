@@ -6,11 +6,14 @@ import play.api.libs.json.Json
 import play.api.mvc._
 import play.api.mvc.Results._
 import javax.inject.Singleton
+import play.api.Logger
 
 import scala.concurrent.Future
 
 @Singleton
 class ErrorHandler extends HttpErrorHandler {
+  val log = Logger(this.getClass)
+
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
     Future.successful(
       Status(statusCode)(message)
@@ -24,11 +27,13 @@ class ErrorHandler extends HttpErrorHandler {
           "error" -> br.getMessage
         ))
       )
-      case t => Future.successful(
-        InternalServerError(Json.obj(
-          "error" -> t.getMessage
-        ))
-      )
+      case t =>
+        log.error("caught error in global handler", t)
+        Future.successful(
+          InternalServerError(Json.obj(
+            "error" -> t.getMessage
+          ))
+        )
     }
   }
 }
