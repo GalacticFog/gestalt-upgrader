@@ -59,16 +59,15 @@ class DefaultMetaClient @Inject() (ws: WSClient, config: Configuration)
                                   (implicit ec: ExecutionContext)
   extends MetaClient with MetaClientParsing {
 
-  val metaProto = config.get[String]("meta.protocol")
-  val metaHost = config.get[String]("meta.host")
-  val metaPort = config.get[Int]("meta.port")
+  val metaBaseUrl = config.get[String]("meta.callback-url").stripSuffix("/")
+
   val secKey = config.get[String]("security.key")
   val secSecret = config.get[String]("security.secret")
   val authHeader = HeaderNames.AUTHORIZATION -> ("Basic " + new String(Base64.getEncoder.encode(s"$secKey:$secSecret".getBytes)))
 
   private[this] def genRequest(endpoint: String, qs: (String,String)*): WSRequest = {
     val ep = endpoint.stripPrefix("/")
-    ws.url(s"${metaProto}://$metaHost:$metaPort/$ep")
+    ws.url(s"$metaBaseUrl/$ep")
       .withHttpHeaders(authHeader)
       .withQueryStringParameters(qs:_*)
   }

@@ -25,8 +25,7 @@ import scala.concurrent.duration._
 
 class MetaClientSpec extends Specification with Mockito with MockWSHelpers with FutureAwaits with DefaultAwaitTimeout {
 
-  val metaHost = "meta.test"
-  val metaPort = 14374
+  val metaCallbackUrl = "http://meta.test:14374"
 
   "DefaultMetaClient" should {
 
@@ -57,19 +56,19 @@ class MetaClientSpec extends Specification with Mockito with MockWSHelpers with 
     }
 
     val allProviders = Route({
-      case (GET, url) if url == s"http://$metaHost:$metaPort/orgs" => Action{ request =>
+      case (GET, url) if url == s"$metaCallbackUrl/orgs" => Action{ request =>
         if (request.getQueryString("expand").contains("true")) {
           val resp = Json.parse(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/fqon-list.json")).getLines().mkString)
           Ok(resp)
         } else Ok(Json.arr())
       }
-      case (GET, url) if url == s"http://$metaHost:$metaPort/root/providers" => Action{ request =>
+      case (GET, url) if url == s"$metaCallbackUrl/root/providers" => Action{ request =>
         if (request.getQueryString("expand").contains("true")) {
           val resp = Json.parse(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/root-provider-list.json")).getLines().mkString)
           Ok(resp)
         } else Ok(Json.arr())
       }
-      case (GET, url) if url == s"http://$metaHost:$metaPort/engineering/providers" => Action{ request =>
+      case (GET, url) if url == s"$metaCallbackUrl/engineering/providers" => Action{ request =>
         if (request.getQueryString("expand").contains("true")) {
           val resp = Json.parse(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/eng-provider-list.json")).getLines().mkString)
           Ok(resp)
@@ -89,8 +88,7 @@ class MetaClientSpec extends Specification with Mockito with MockWSHelpers with 
 
     "get all providers" in new WithRoutesAndConfig(
       routes = allProviders orElse notFoundRoute,
-      "meta.host" -> metaHost,
-      "meta.port" -> metaPort,
+      "meta.callback-url" -> "http://meta.test:14374/",
       "security.key" -> "open",
       "security.secret" -> "sesame"
     ) {
