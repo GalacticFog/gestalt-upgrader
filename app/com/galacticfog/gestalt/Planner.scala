@@ -6,6 +6,9 @@ import akka.actor.{Actor, ActorLogging}
 import akka.pattern.pipe
 import javax.inject.Inject
 
+import scala.concurrent.Future
+import scala.language.implicitConversions
+
 object Planner {
   final val actorName = "planner"
 
@@ -25,18 +28,37 @@ class Planner16 @Inject() ( caasClientFactory: CaasClientFactory,
 
   implicit val ec = context.dispatcher
 
-  val providerUpgrades: Map[UUID, (MetaProviderProto, MetaProviderProto)] = Map(
-    ResourceIds.KongGateway    ->    (MetaProviderProto(s"galacticfog/kong:release-${expectedVersion}"),                          MetaProviderProto(s"galacticfog/kong:release-${targetVersion}")),
-    ResourceIds.LambdaProvider ->    (MetaProviderProto(s"galacticfog/gestalt-laser:release-${expectedVersion}"),                 MetaProviderProto(s"galacticfog/gestalt-laser:release-${targetVersion}")),
-    ResourceIds.GatewayManager ->    (MetaProviderProto(s"galacticfog/gestalt-api-gateway:release-${expectedVersion}"),           MetaProviderProto(s"galacticfog/gestalt-api-gateway:release-${targetVersion}")),
-    ResourceIds.GoLangExecutor    -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-go:release-${expectedVersion}"),     MetaProviderProto(s"galacticfog/gestalt-laser-executor-go:release-${targetVersion}")),
-    ResourceIds.JavaExecutor      -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-jvm:release-${expectedVersion}"),    MetaProviderProto(s"galacticfog/gestalt-laser-executor-jvm:release-${targetVersion}")),
-    ResourceIds.NashornExecutor   -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-js:release-${expectedVersion}"),     MetaProviderProto(s"galacticfog/gestalt-laser-executor-js:release-${targetVersion}")),
-    ResourceIds.NodeJsExecutor    -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-nodejs:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/gestalt-laser-executor-nodejs:release-${targetVersion}")),
-    ResourceIds.PythonExecutor    -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-python:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/gestalt-laser-executor-python:release-${targetVersion}")),
-    ResourceIds.RubyExecutor      -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-ruby:release-${expectedVersion}"),   MetaProviderProto(s"galacticfog/gestalt-laser-executor-ruby:release-${targetVersion}")),
-    ResourceIds.CsharpExecutor    -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-dotnet:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/gestalt-laser-executor-dotnet:release-${targetVersion}"))
-  )
+  def simpleProviderUpgrade(providerAndBaseImage: (UUID, String)): (UUID, (MetaProviderProto, MetaProviderProto)) =
+    providerAndBaseImage._1 -> (
+      MetaProviderProto(providerAndBaseImage._2 + expectedVersion) , MetaProviderProto(providerAndBaseImage._2 + targetVersion)
+    )
+
+  def simpleSvcUpgrade(svcAndBaseImage: (String, String)): (String, (String, String)) =
+    svcAndBaseImage._1 -> (
+      svcAndBaseImage._2 + expectedVersion, svcAndBaseImage._2 + targetVersion
+    )
+
+  val baseUpgrades = Map(
+    "security" -> "galacticfog/gestalt-security:release-",
+    "meta"     -> "galacticfog/gestalt-meta:release-",
+    "ui-react" -> "galacticfog/gestalt-ui-react:release-"
+  ) map simpleSvcUpgrade
+
+  val providerUpgrades = Map(
+    ResourceIds.KongGateway       -> "galacticfog/kong:release-",
+    ResourceIds.LambdaProvider    -> "galacticfog/gestalt-laser:release-",
+    ResourceIds.GatewayManager    -> "galacticfog/gestalt-api-gateway:release-",
+    ResourceIds.PolicyProvider    -> "galacticfog/gestalt-policy:release-",
+    ResourceIds.LoggingProvider   -> "galacticfog/gestalt-logger:release-",
+
+    ResourceIds.GoLangExecutor    -> "galacticfog/gestalt-laser-executor-go:release-",
+    ResourceIds.JavaExecutor      -> "galacticfog/gestalt-laser-executor-jvm:release-",
+    ResourceIds.NashornExecutor   -> "galacticfog/gestalt-laser-executor-js:release-",
+    ResourceIds.NodeJsExecutor    -> "galacticfog/gestalt-laser-executor-nodejs:release-",
+    ResourceIds.PythonExecutor    -> "galacticfog/gestalt-laser-executor-python:release-",
+    ResourceIds.RubyExecutor      -> "galacticfog/gestalt-laser-executor-ruby:release-",
+    ResourceIds.CsharpExecutor    -> "galacticfog/gestalt-laser-executor-dotnet:release-"
+  ) map simpleProviderUpgrade
 
   val executors: Set[UUID] = Set(
     ResourceIds.GoLangExecutor,
@@ -51,15 +73,18 @@ class Planner16 @Inject() ( caasClientFactory: CaasClientFactory,
   override def receive: Receive = {
     case ComputePlan =>
       log.info("received ComputePlan, beginning plan computation...")
-      val fMeta = caasClient.flatMap(_.getCurrentImage("meta"))
-      val fSec  = caasClient.flatMap(_.getCurrentImage("security"))
-      val fUI   = caasClient.flatMap(_.getCurrentImage("ui-react"))
+      val fBaseServices = Future.traverse(Seq("security", "meta", "ui-react")) (
+        svc => caasClient.flatMap(_.getCurrentImage(svc)).map(svc -> _)
+      )
 
       val plan = for {
         // BASE
-        sec  <- fSec
-        meta <- fMeta
-        ui   <- fUI
+        baseSvcs <- fBaseServices
+        base = baseSvcs flatMap {
+          case (svc,actual) => baseUpgrades.get(svc) map {
+            case (exp, tgt) => UpgradeBaseService(svc, exp, tgt, actual)
+          }
+        }
         // Providers
         providers <- metaClient.listProviders
         (execs, provs) = providers.partition(p => executors.contains(p.providerType))
@@ -73,12 +98,9 @@ class Planner16 @Inject() ( caasClientFactory: CaasClientFactory,
             case (exp,tgt) => UpgradeProvider(exp, tgt, p)
           }
         }
-      } yield UpgradePlan(Seq(
-        BackupDatabase,
-        UpgradeBaseService("security", s"galacticfog/gestalt-security:release-${expectedVersion}", s"galacticfog/gestalt-security:release-${targetVersion}", sec),
-        UpgradeBaseService(    "meta",     s"galacticfog/gestalt-meta:release-${expectedVersion}",     s"galacticfog/gestalt-meta:release-${targetVersion}", meta),
-        UpgradeBaseService(      "ui", s"galacticfog/gestalt-ui-react:release-${expectedVersion}", s"galacticfog/gestalt-ui-react:release-${targetVersion}", ui)
-      ) ++ updateExecs ++ updatedProviders)
+      } yield UpgradePlan(
+        Seq(BackupDatabase) ++ base ++ updateExecs ++ updatedProviders
+      )
 
       plan pipeTo sender()
   }

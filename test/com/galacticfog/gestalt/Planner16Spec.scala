@@ -56,10 +56,10 @@ class Planner16Spec extends Specification with Mockito {
         mockCaasClient.getCurrentImage("ui-react") returns Future.successful("galacticfog/gestalt-ui-react:release-1.5.3")
 
         val currentProviders = Seq(
-          MetaProvider("root", "default-kong-provider",  uuid, ResourceIds.KongGateway,      Some("galacticfog/kong:release-1.5.1")),
-          MetaProvider("root", "default-laser-executor-jvm", uuid, ResourceIds.JavaExecutor, Some("galacticfog/gestalt-laser-executor-jvm:release-1.5.2.1")),
-          MetaProvider("root", "default-laser-provider", uuid, ResourceIds.LambdaProvider,   Some("galacticfog/gestalt-laser:release-1.5.2")),
-          MetaProvider("test", "default-gwm",            uuid, ResourceIds.GatewayManager,   Some("galacticfog/gestalt-api-gateway:release-1.5.3"))
+          MetaProvider("root", "default-kong-provider",      uuid, ResourceIds.KongGateway,    Some("galacticfog/kong:release-1.5.1")),
+          MetaProvider("root", "default-laser-executor-jvm", uuid, ResourceIds.JavaExecutor,   Some("galacticfog/gestalt-laser-executor-jvm:release-1.5.2.1")),
+          MetaProvider("root", "default-laser-provider",     uuid, ResourceIds.LambdaProvider, Some("galacticfog/gestalt-laser:release-1.5.2")),
+          MetaProvider("test", "default-gwm",                uuid, ResourceIds.GatewayManager, Some("galacticfog/gestalt-api-gateway:release-1.5.3"))
         )
 
         mockMetaClient.listProviders returns Future.successful(currentProviders)
@@ -70,7 +70,7 @@ class Planner16Spec extends Specification with Mockito {
           BackupDatabase,
           UpgradeBaseService("security", "galacticfog/gestalt-security:release-1.5.0", "galacticfog/gestalt-security:release-1.6.0", "galacticfog/gestalt-security:release-1.5.1"),
           UpgradeBaseService("meta",         "galacticfog/gestalt-meta:release-1.5.0",     "galacticfog/gestalt-meta:release-1.6.0",     "galacticfog/gestalt-meta:release-1.5.2"),
-          UpgradeBaseService("ui",       "galacticfog/gestalt-ui-react:release-1.5.0", "galacticfog/gestalt-ui-react:release-1.6.0", "galacticfog/gestalt-ui-react:release-1.5.3"),
+          UpgradeBaseService("ui-react", "galacticfog/gestalt-ui-react:release-1.5.0", "galacticfog/gestalt-ui-react:release-1.6.0", "galacticfog/gestalt-ui-react:release-1.5.3"),
           UpgradeExecutor(MetaProviderProto("galacticfog/gestalt-laser-executor-jvm:release-1.5.0"), MetaProviderProto("galacticfog/gestalt-laser-executor-jvm:release-1.6.0"), currentProviders(1)),
           UpgradeProvider(MetaProviderProto("galacticfog/kong:release-1.5.0"),                MetaProviderProto("galacticfog/kong:release-1.6.0"),                currentProviders(0)),
           UpgradeProvider(MetaProviderProto("galacticfog/gestalt-laser:release-1.5.0"),       MetaProviderProto("galacticfog/gestalt-laser:release-1.6.0"),       currentProviders(2)),
