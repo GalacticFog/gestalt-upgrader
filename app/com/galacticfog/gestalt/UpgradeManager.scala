@@ -11,7 +11,7 @@ class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
 
   import UpgradeManager._
 
-  var currentState = Status(
+  private[this] var currentState = Status(
     hasPlan = false,
     hasDB = false,
     planWarnings = false,
@@ -20,9 +20,9 @@ class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
     isFailed = false
   )
 
-  var currentPlan: Seq[UpgradeStep] = _
+  private[this] var currentPlan: Seq[UpgradeStep] = _
 
-  val currentLog = scala.collection.mutable.ListBuffer.empty[String]
+  private[this] val currentLog = scala.collection.mutable.ListBuffer.empty[String]
 
   override def receiveRecover: Receive = {
     case Planner.UpgradePlan(steps) =>

@@ -28,7 +28,7 @@ class DCOSAuthTokenActor @Inject() ( clientFac: WSClientFactory ) extends Actor 
 
   val requestChild = context.actorOf(Props(classOf[DCOSAuthTokenRequestActor], clientFac.getClient(true)))
 
-  var acsAuthorizationToken: Option[String] = None
+  private[this] var acsAuthorizationToken: Option[String] = None
 
   // use the error kernel pattern to help protect our state from being wiped...
   // if we still manage to fail, it's not the end of the world, because the tokens will be regenerated

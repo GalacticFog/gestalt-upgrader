@@ -55,8 +55,8 @@ trait MetaClientParsing {
   }
 }
 
-class DefaultMetaClient @Inject() (ws: WSClient, config: Configuration)
-                                  (implicit ec: ExecutionContext)
+class DefaultMetaClient @Inject() ( ws: WSClient, config: Configuration )
+                                  ( implicit ec: ExecutionContext )
   extends MetaClient with MetaClientParsing {
 
   val metaBaseUrl = config.get[String]("meta.callback-url").stripSuffix("/")
@@ -88,7 +88,7 @@ class DefaultMetaClient @Inject() (ws: WSClient, config: Configuration)
         fqon => get(s"$fqon/providers", "expand" -> "true") map {_.as[Seq[JsObject]]}
       }
       allProviders = providerLists.flatMap { _.flatMap(parseMetaProvider(_)) }
-    } yield allProviders
+    } yield allProviders.distinct
     l.onComplete({
       case Success(l) => logger.info(s"listProviders returned ${l.size} providers")
       case Failure(e) => logger.error("listProviders returned exception", e)

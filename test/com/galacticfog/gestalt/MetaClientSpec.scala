@@ -83,7 +83,7 @@ class MetaClientSpec extends Specification with Mockito with MockWSHelpers with 
     "parse meta providers" in {
       val mc = new MetaClientParsing {}
       val resp = Json.parse(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/eng-provider-list.json")).getLines().mkString).as[Seq[JsObject]]
-      resp.flatMap(mc.parseMetaProvider) must haveSize(2)
+      resp.flatMap(mc.parseMetaProvider) must haveSize(4)
     }
 
     "get all providers" in new WithRoutesAndConfig(

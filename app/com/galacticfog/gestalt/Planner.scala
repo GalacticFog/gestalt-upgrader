@@ -26,9 +26,9 @@ class Planner16 @Inject() ( caasClientFactory: CaasClientFactory,
   implicit val ec = context.dispatcher
 
   val providerUpgrades: Map[UUID, (MetaProviderProto, MetaProviderProto)] = Map(
-    ResourceIds.KongGateway    -> (MetaProviderProto(s"galacticfog/kong:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/kong:release-${targetVersion}")),
-    ResourceIds.LambdaProvider -> (MetaProviderProto(s"galacticfog/gestalt-laser:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/gestalt-laser:release-${targetVersion}")),
-    ResourceIds.GatewayManager -> (MetaProviderProto(s"galacticfog/gestalt-api-gateway:release-${expectedVersion}"), MetaProviderProto(s"galacticfog/gestalt-api-gateway:release-${targetVersion}")),
+    ResourceIds.KongGateway    ->    (MetaProviderProto(s"galacticfog/kong:release-${expectedVersion}"),                          MetaProviderProto(s"galacticfog/kong:release-${targetVersion}")),
+    ResourceIds.LambdaProvider ->    (MetaProviderProto(s"galacticfog/gestalt-laser:release-${expectedVersion}"),                 MetaProviderProto(s"galacticfog/gestalt-laser:release-${targetVersion}")),
+    ResourceIds.GatewayManager ->    (MetaProviderProto(s"galacticfog/gestalt-api-gateway:release-${expectedVersion}"),           MetaProviderProto(s"galacticfog/gestalt-api-gateway:release-${targetVersion}")),
     ResourceIds.GoLangExecutor    -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-go:release-${expectedVersion}"),     MetaProviderProto(s"galacticfog/gestalt-laser-executor-go:release-${targetVersion}")),
     ResourceIds.JavaExecutor      -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-jvm:release-${expectedVersion}"),    MetaProviderProto(s"galacticfog/gestalt-laser-executor-jvm:release-${targetVersion}")),
     ResourceIds.NashornExecutor   -> (MetaProviderProto(s"galacticfog/gestalt-laser-executor-js:release-${expectedVersion}"),     MetaProviderProto(s"galacticfog/gestalt-laser-executor-js:release-${targetVersion}")),
