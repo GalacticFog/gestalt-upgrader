@@ -2,6 +2,7 @@ package modules
 
 import akka.stream.Materializer
 import com.galacticfog.gestalt._
+import com.galacticfog.gestalt.caas.{CaasClientFactory, DefaultCaasClientFactory}
 import com.galacticfog.gestalt.caas.dcos.DCOSAuthTokenActor
 import com.typesafe.sslconfig.ssl.{SSLConfigSettings, SSLLooseConfig}
 import javax.inject.{Inject, Singleton}
@@ -17,11 +18,11 @@ class DefaultComponentModule extends ScalaModule with AkkaGuiceSupport {
     bindActor[UpgradeManager](UpgradeManager.actorName)
     bindActor[Upgrader16](Upgrader.actorName)
     bindActor[Planner16](Planner.actorName)
-    bindActor[Executor](Executor.actorName)
     bindActor[DCOSAuthTokenActor](DCOSAuthTokenActor.actorName)
     bindActor[DefaultCaasClientFactory](CaasClientFactory.actorName)
     bind[WSClientFactory].to[DefaultWSClientFactory]
     bind[MetaClient].to[DefaultMetaClient]
+    bind[Executor].to[DefaultExecutor]
   }
 
 }

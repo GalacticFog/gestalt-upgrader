@@ -15,7 +15,6 @@
           "private": {},
           "public": {
             "CMD": "bin/gestalt-laser-executor-golang",
-            "IMAGE": "galacticfog/gestalt-laser-executor-golang:1.15.0-SNAPSHOT-0fcd7851",
             "NAME": "golang-executor",
             "RUNTIME": "golang"
           }

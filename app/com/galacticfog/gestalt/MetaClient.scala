@@ -4,18 +4,23 @@ import java.util.{Base64, UUID}
 
 import javax.inject.Inject
 import play.api.{Configuration, Logger}
-import play.api.http.HeaderNames
+import play.api.http.{HeaderNames, Status}
 import play.api.libs.json.{JsObject, JsValue, Json, Reads}
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
 import play.api.libs.json._
 import play.api.libs.json.Reads._
 import play.api.libs.functional.syntax._
+import play.api.mvc.Results
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
+class ResourceNotFoundException(msg: String) extends RuntimeException(msg)
+
 trait MetaClient {
+  def getProvider(fqon: String, id: UUID): Future[MetaProvider]
   def listProviders: Future[Seq[MetaProvider]]
+  def updateProvider(metaProvider: MetaProvider): Future[MetaProvider]
 }
 
 trait MetaClientParsing {
@@ -33,12 +38,25 @@ trait MetaClientParsing {
       }
     }
 
+    val rdsServiceProviderImage = new Reads[String] {
+      override def reads(json: JsValue): JsResult[String] = {
+        (json \ "properties" \ "services").asOpt[Seq[JsObject]].getOrElse(Seq.empty).headOption match {
+          case None => JsError("no services")
+          case Some(svc) => (svc \ "container_spec" \ "properties" \ "image").validate[String]
+        }
+      }
+    }
+
+    val rdsExecutorProviderImage: Reads[String] = (
+      (__ \ "properties" \ "config" \ "env" \ "public" \ "IMAGE").read[String]
+    )
+
     val metaProviderRds: Reads[MetaProvider] = (
       (__ \ "org" \ "properties" \ "fqon").read[String] and
         (__ \ "name").read[String] and
         (__ \ "id").read[UUID] and
         (__ \ "resource_type").read[UUID](rdProviderId) and
-        (__ \ "properties" \ "services").readNullable[Seq[JsObject]].map(_.flatMap(_.headOption)).map(j => (j.getOrElse(Json.obj()) \ "container_spec" \ "properties" \ "image").asOpt[String]) and
+        __.read[String](rdsServiceProviderImage orElse rdsExecutorProviderImage).map(Option(_)).orElse(Reads.pure(None)) and
         (__ \ "properties" \ "config").read[JsObject].orElse(Reads.pure(Json.obj()))
       )(MetaProvider.apply(_,_,_,_,_,_))
     json.validate[MetaProvider](metaProviderRds).asOpt
@@ -47,8 +65,10 @@ trait MetaClientParsing {
   def messageOrBody(resp: WSResponse) = Try((resp.json \ "message").as[String]).getOrElse(resp.body)
 
   def processResponse(resp: WSResponse): Future[JsValue] = resp match {
-    case r if r.status == 204 => Future.successful(Json.obj())
+    case r if r.status == Status.NO_CONTENT => Future.successful(Json.obj())
+    case r if r.status == Status.ACCEPTED  => Future.successful(Try(r.json).getOrElse(Json.obj()))
     case r if Range(200, 299).contains(r.status) => Future.successful(r.json)
+    case r if r.status == Status.NOT_FOUND => Future.failed(new ResourceNotFoundException("resource not found"))
     case r =>
       logger.error(s"Meta API returned ${r.statusText}: ${messageOrBody(r)}")
       Future.failed(new RuntimeException(s"Meta API returned ${r.statusText}: ${messageOrBody(r)}"))
@@ -73,9 +93,25 @@ class DefaultMetaClient @Inject() ( ws: WSClient, config: Configuration )
   }
 
   private[this] def get(endpoint: String, qs: (String,String)*): Future[JsValue] = {
-    genRequest(endpoint, qs:_*).get() flatMap processResponse recoverWith {
+    genRequest(endpoint, qs:_*).execute("GET") flatMap processResponse recoverWith {
       case e: Throwable =>
         logger.error(s"error during GET(${endpoint})", e)
+        Future.failed(e)
+    }
+  }
+
+  private[this] def post(endpoint: String, qs: (String,String)*): Future[Unit] = {
+    genRequest(endpoint, qs:_*).execute("POST") map {_ => ()} recoverWith {
+      case e: Throwable =>
+        logger.error(s"error during POST(${endpoint})", e)
+        Future.failed(e)
+    }
+  }
+
+  private[this] def patch(endpoint: String, payload: JsValue, qs: (String,String)*): Future[JsValue] = {
+    genRequest(endpoint, qs:_*).patch(payload) flatMap processResponse recoverWith {
+      case e: Throwable =>
+        logger.error(s"error during PATCH(${endpoint}", e)
         Future.failed(e)
     }
   }
@@ -95,4 +131,34 @@ class DefaultMetaClient @Inject() ( ws: WSClient, config: Configuration )
     })
     l
   }
+
+  override def updateProvider(p: MetaProvider): Future[MetaProvider] = {
+    def patchImage(path: String) = patch(s"/${p.fqon}/providers/${p.id}", Json.arr(Json.obj(
+      "op" -> "replace",
+      "path" -> path,
+      "value" -> p.image
+    )), "expand" -> "true").flatMap(j => parseMetaProvider(j.as[JsObject]) match {
+      case Some(mp) => Future.successful(mp)
+      case None => Future.failed(new RuntimeException("failed to parse MetaProvider from expected PATCH payload"))
+    })
+
+    if (executorProviders.contains(p.providerType)) {
+      patchImage("/properties/config/env/public/IMAGE")
+    } else for {
+      updated <- patchImage("/properties/services/0/container_spec/properties/image")
+      _ <- post(s"/${p.fqon}/providers/${p.id}/redeploy")
+    } yield updated
+  }
+
+  override def getProvider(fqon: String, id: UUID): Future[MetaProvider] = {
+    get(s"$fqon/providers/$id") flatMap { j =>
+      parseMetaProvider(j.as[JsObject]) match {
+        case Some(p) => Future.successful(p)
+        case None => Future.failed(new RuntimeException("failed to parse MetaProvider from expected GET payload"))
+      }
+    } recoverWith {
+      case rnf: ResourceNotFoundException => Future.failed(new ResourceNotFoundException(s"provider ${id} not found"))
+    }
+  }
+
 }

@@ -1,14 +1,11 @@
 package com.galacticfog.gestalt
 
-import akka.actor.ActorRef
 import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
-import javax.inject.Inject
 import com.galacticfog.gestalt.Upgrader._
-import com.google.inject.name.Named
+import javax.inject.Inject
 
-import scala.reflect.classTag
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, classTag}
 
 
 trait Upgrader
@@ -42,7 +39,7 @@ object Upgrader {
                            failedStep: Option[(UpgradeStep, Throwable)] )
 }
 
-class Upgrader16 @Inject()(@Named(Executor.actorName) executor: ActorRef)
+class Upgrader16 @Inject()(executor: Executor)
   extends PersistentFSM[UpgraderState,UpgraderData,UpgraderEvent] with Upgrader {
 
   override def domainEventClassTag: ClassTag[UpgraderEvent] = classTag[UpgraderEvent]

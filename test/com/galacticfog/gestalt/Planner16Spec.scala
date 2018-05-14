@@ -2,6 +2,7 @@ package com.galacticfog.gestalt
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestKit, TestProbe}
+import com.galacticfog.gestalt.caas.{CaasClient, CaasClientFactory}
 import com.google.inject.name.Names
 import modules.DefaultComponentModule
 import net.codingwell.scalaguice.ScalaModule
@@ -33,8 +34,8 @@ class Planner16Spec extends Specification with Mockito {
         bindActor[UpgradeManager](UpgradeManager.actorName)
         bindActor[Planner16](Planner.actorName)
         bindActor[Upgrader16](Upgrader.actorName)
-        bindActor[Executor](Executor.actorName)
         bind[MetaClient].toInstance(mockMetaClient)
+        bind[Executor].toInstance(mock[Executor])
         bind(classOf[ActorRef]).annotatedWith(Names.named(CaasClientFactory.actorName)).toInstance(testCaasFactory.ref)
       }
     }

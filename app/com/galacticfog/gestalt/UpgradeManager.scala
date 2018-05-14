@@ -2,7 +2,7 @@ package com.galacticfog.gestalt
 
 import akka.actor.{ActorLogging, ActorRef}
 import akka.actor.Status.Failure
-import akka.persistence.PersistentActor
+import akka.persistence.{PersistentActor, RecoveryCompleted}
 import javax.inject.{Inject, Named}
 import play.api.libs.json.{Format, Json}
 
@@ -10,6 +10,8 @@ class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
                                 @Named(Planner.actorName) planner: ActorRef ) extends PersistentActor with ActorLogging {
 
   import UpgradeManager._
+
+  override def persistenceId: String = "upgrade-manager"
 
   private[this] var currentState = Status(
     hasPlan = false,
@@ -25,6 +27,8 @@ class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
   private[this] val currentLog = scala.collection.mutable.ListBuffer.empty[String]
 
   override def receiveRecover: Receive = {
+    case RecoveryCompleted =>
+      log.info("recovery completed")
     case Planner.UpgradePlan(steps) =>
       updatePlan(steps)
     case e: CompletionEvent =>
@@ -77,8 +81,6 @@ class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
         evt => updatePlan(evt.steps)
       }
   }
-
-  override def persistenceId: String = "upgrade-manager"
 
   private[this] def updatePlan(steps: Seq[UpgradeStep]): Unit = {
     currentPlan = steps

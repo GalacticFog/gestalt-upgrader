@@ -5,9 +5,10 @@ import java.util.UUID
 import akka.pattern.ask
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.pattern.pipe
+import com.galacticfog.gestalt.caas.{CaasClient, CaasClientFactory}
 import javax.inject.{Inject, Named}
-import scala.concurrent.duration._
 
+import scala.concurrent.duration._
 import scala.concurrent.Future
 import scala.language.implicitConversions
 
@@ -60,16 +61,6 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
     ResourceIds.CsharpExecutor    -> "galacticfog/gestalt-laser-executor-dotnet:release-"
   ) map simpleProviderUpgrade
 
-  val executors: Set[UUID] = Set(
-    ResourceIds.GoLangExecutor,
-    ResourceIds.JavaExecutor,
-    ResourceIds.NashornExecutor,
-    ResourceIds.NodeJsExecutor,
-    ResourceIds.PythonExecutor,
-    ResourceIds.RubyExecutor,
-    ResourceIds.CsharpExecutor
-  )
-
   override def receive: Receive = {
     case ComputePlan =>
       val caasClient = caasClientFactory.ask(CaasClientFactory.GetClient)(30 seconds).mapTo[CaasClient]
@@ -89,7 +80,7 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
         }
         // Providers
         providers <- metaClient.listProviders
-        (execs, provs) = providers.partition(p => executors.contains(p.providerType))
+        (execs, provs) = providers.partition(p => executorProviders.contains(p.providerType))
         updateExecs = execs.flatMap {
           p => providerUpgrades.get(p.providerType) map {
             case (exp,tgt) => UpgradeExecutor(exp, tgt, p)

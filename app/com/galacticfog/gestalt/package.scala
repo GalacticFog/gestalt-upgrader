@@ -79,6 +79,16 @@ package object gestalt {
     val VisibilityType = UUID.fromString("4f952c9a-0daf-4671-b298-56768b1c795f")
   }
 
+  val executorProviders: Set[UUID] = Set(
+    ResourceIds.GoLangExecutor,
+    ResourceIds.JavaExecutor,
+    ResourceIds.NashornExecutor,
+    ResourceIds.NodeJsExecutor,
+    ResourceIds.PythonExecutor,
+    ResourceIds.RubyExecutor,
+    ResourceIds.CsharpExecutor
+  )
+
   object Resources {
     val Resource          = "Gestalt::Resource"
     val Api               = "Gestalt::Resource::Api"
