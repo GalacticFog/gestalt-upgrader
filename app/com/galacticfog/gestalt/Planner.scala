@@ -2,9 +2,11 @@ package com.galacticfog.gestalt
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging}
+import akka.pattern.ask
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.pattern.pipe
-import javax.inject.Inject
+import javax.inject.{Inject, Named}
+import scala.concurrent.duration._
 
 import scala.concurrent.Future
 import scala.language.implicitConversions
@@ -16,15 +18,13 @@ object Planner {
   case class UpgradePlan(steps: Seq[UpgradeStep])
 }
 
-class Planner16 @Inject() ( caasClientFactory: CaasClientFactory,
+class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactory: ActorRef,
                             metaClient: MetaClient ) extends Actor with ActorLogging {
 
   import Planner._
 
   val expectedVersion = "1.5.0"
   val targetVersion   = "1.6.0"
-
-  val caasClient = caasClientFactory.getClient
 
   implicit val ec = context.dispatcher
 
@@ -72,13 +72,15 @@ class Planner16 @Inject() ( caasClientFactory: CaasClientFactory,
 
   override def receive: Receive = {
     case ComputePlan =>
+      val caasClient = caasClientFactory.ask(CaasClientFactory.GetClient)(30 seconds).mapTo[CaasClient]
+
       log.info("received ComputePlan, beginning plan computation...")
       val fBaseServices = Future.traverse(Seq("security", "meta", "ui-react")) (
         svc => caasClient.flatMap(_.getCurrentImage(svc)).map(svc -> _)
       )
 
       val plan = for {
-        // BASE
+        // Base services
         baseSvcs <- fBaseServices
         base = baseSvcs flatMap {
           case (svc,actual) => baseUpgrades.get(svc) map {

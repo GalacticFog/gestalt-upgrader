@@ -19,8 +19,8 @@ class DefaultComponentModule extends ScalaModule with AkkaGuiceSupport {
     bindActor[Planner16](Planner.actorName)
     bindActor[Executor](Executor.actorName)
     bindActor[DCOSAuthTokenActor](DCOSAuthTokenActor.actorName)
+    bindActor[DefaultCaasClientFactory](CaasClientFactory.actorName)
     bind[WSClientFactory].to[DefaultWSClientFactory]
-    bind[CaasClientFactory].to[DefaultCaasClientFactory]
     bind[MetaClient].to[DefaultMetaClient]
   }
 

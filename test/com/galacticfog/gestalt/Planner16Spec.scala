@@ -2,6 +2,7 @@ package com.galacticfog.gestalt
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestKit, TestProbe}
+import com.google.inject.name.Names
 import modules.DefaultComponentModule
 import net.codingwell.scalaguice.ScalaModule
 import org.specs2.mock.Mockito
@@ -25,6 +26,7 @@ class Planner16Spec extends Specification with Mockito {
 
     val mockCaasClient = mock[CaasClient]
     val mockMetaClient = mock[MetaClient]
+    val testCaasFactory = TestProbe("test-caas-factory")(actorSystem)
 
     class TestModule extends ScalaModule with AkkaGuiceSupport {
       override def configure(): Unit = {
@@ -32,10 +34,8 @@ class Planner16Spec extends Specification with Mockito {
         bindActor[Planner16](Planner.actorName)
         bindActor[Upgrader16](Upgrader.actorName)
         bindActor[Executor](Executor.actorName)
-        val mockClientFactory = mock[CaasClientFactory]
-        mockClientFactory.getClient returns Future.successful(mockCaasClient)
-        bind[CaasClientFactory].toInstance(mockClientFactory)
         bind[MetaClient].toInstance(mockMetaClient)
+        bind(classOf[ActorRef]).annotatedWith(Names.named(CaasClientFactory.actorName)).toInstance(testCaasFactory.ref)
       }
     }
 
@@ -66,6 +66,10 @@ class Planner16Spec extends Specification with Mockito {
 
         val testProbe = TestProbe()
         planner.tell(Planner.ComputePlan, testProbe.ref)
+
+        testCaasFactory.expectMsg(CaasClientFactory.GetClient)
+        testCaasFactory.reply(mockCaasClient)
+
         testProbe.expectMsg(Planner.UpgradePlan(Seq(
           BackupDatabase,
           UpgradeBaseService("security", "galacticfog/gestalt-security:release-1.5.0", "galacticfog/gestalt-security:release-1.6.0", "galacticfog/gestalt-security:release-1.5.1"),
