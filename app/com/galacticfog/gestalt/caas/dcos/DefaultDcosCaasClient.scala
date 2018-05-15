@@ -92,9 +92,9 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
   }
 
   override def getCurrentImage(serviceName: String): Future[String] = {
-    log.info(s"looking up ${serviceName} against CaaS API")
+    log.info(s"looking up '$serviceName' against CaaS API")
     for {
-      req <- genRequest(s"/v2/apps/${appGroupPrefix}/${serviceName}")
+      req <- genRequest(s"/v2/apps/$appGroupPrefix/$serviceName")
       resp <- req.get()
       json <- processResponse(resp)
       image <- (json \ "app" \ "container" \ "docker" \ "image").validate[String] match {
@@ -107,4 +107,22 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
     } yield image
   }
 
+  override def updateImage(serviceName: String, newImage: String, expectedImage: Option[String]): Future[String] = {
+    log.info(s"updating '$serviceName' to '$newImage' image against CaaS API")
+    val imageUpdater = (__ \ 'container \ 'docker \ 'image).json.put(JsString(newImage))
+
+    for {
+      getReq <- genRequest(s"/v2/apps/$appGroupPrefix/$serviceName")
+      getResp <- getReq.get()
+      app = (getResp.json \ "app").as[JsObject]
+      currentImage = (app \ "container" \ "docker" \ "image").as[String]
+      _ <- if (expectedImage.exists(_ != currentImage)) Future.failed(
+        new RuntimeException("image was different than expected")
+      ) else Future.successful(())
+      newApp <- Future.fromTry(Try(app.transform(imageUpdater).get))
+      putReq <- genRequest(s"/v2/apps/$appGroupPrefix/$serviceName")
+      putResp <- putReq.put(newApp)
+      if putResp.status == 200
+    } yield newImage
+  }
 }

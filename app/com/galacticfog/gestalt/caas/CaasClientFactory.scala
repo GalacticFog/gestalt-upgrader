@@ -16,6 +16,7 @@ import scala.util.{Failure, Success}
 
 trait CaasClient {
   def getCurrentImage(serviceName: String): Future[String]
+  def updateImage(serviceName: String, newImage: String, expectedImage: Option[String]): Future[String]
 }
 
 object CaasClientFactory {
