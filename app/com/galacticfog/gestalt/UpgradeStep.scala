@@ -19,9 +19,22 @@ case object BackupDatabase extends UpgradeStep {
   override def message: String = "Back up database"
 }
 
-case class UpgradeBaseService(name: String, expected: String, target: String, actual: String) extends UpgradeStep {
+sealed trait BaseService {
+  def name: String
+}
+case object SECURITY extends BaseService {
+  def name = "security"
+}
+case object META extends BaseService {
+  def name = "meta"
+}
+case object UI extends BaseService {
+  def name = "ui-react"
+}
+
+case class UpgradeBaseService(service: BaseService, expected: String, target: String, actual: String) extends UpgradeStep {
   override def message: String = {
-    val msg = s"Upgrade base service ${name} from ${actual} to ${target}"
+    val msg = s"Upgrade base service ${service.name} from ${actual} to ${target}"
     if (warning) "WARNING: " + msg + s" (expected image ${expected})" else msg
   }
   override def warning: Boolean = expected != actual

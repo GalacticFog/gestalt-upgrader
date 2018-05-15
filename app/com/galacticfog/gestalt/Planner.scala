@@ -34,15 +34,15 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
       MetaProviderProto(providerAndBaseImage._2 + expectedVersion) , MetaProviderProto(providerAndBaseImage._2 + targetVersion)
     )
 
-  def simpleSvcUpgrade(svcAndBaseImage: (String, String)): (String, (String, String)) =
+  def simpleSvcUpgrade(svcAndBaseImage: (BaseService, String)): (BaseService, (String, String)) =
     svcAndBaseImage._1 -> (
       svcAndBaseImage._2 + expectedVersion, svcAndBaseImage._2 + targetVersion
     )
 
   val baseUpgrades = Map(
-    "security" -> "galacticfog/gestalt-security:release-",
-    "meta"     -> "galacticfog/gestalt-meta:release-",
-    "ui-react" -> "galacticfog/gestalt-ui-react:release-"
+    SECURITY -> "galacticfog/gestalt-security:release-",
+    META     -> "galacticfog/gestalt-meta:release-",
+    UI       -> "galacticfog/gestalt-ui-react:release-"
   ) map simpleSvcUpgrade
 
   val providerUpgrades = Map(
@@ -66,7 +66,7 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
       val caasClient = caasClientFactory.ask(CaasClientFactory.GetClient)(30 seconds).mapTo[CaasClient]
 
       log.info("received ComputePlan, beginning plan computation...")
-      val fBaseServices = Future.traverse(Seq("security", "meta", "ui-react")) (
+      val fBaseServices = Future.traverse(Seq(SECURITY, META, UI)) (
         svc => caasClient.flatMap(_.getCurrentImage(svc)).map(svc -> _)
       )
 

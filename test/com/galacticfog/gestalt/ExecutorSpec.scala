@@ -68,7 +68,7 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
 
     val upgradeProvider = UpgradeProvider(expProto, tgtProto, metaProvider)
     val upgradeExecutor = UpgradeExecutor(expProto, tgtProto, metaExecutor)
-    val upgradeBaseSvc = UpgradeBaseService("security", expProto.image, tgtProto.image, "image:actual")
+    val upgradeBaseSvc = UpgradeBaseService(SECURITY, expProto.image, tgtProto.image, "image:actual")
 
     "properly upgrade Meta provider services" in new WithConfig {
       mockMetaClient.getProvider(metaProvider.fqon, metaProvider.id) returns Future.successful(metaProvider)
@@ -123,16 +123,16 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
 
 
     "properly upgrade base service" in new WithConfig {
-      mockCaasClient.getCurrentImage("security") returns Future.successful("image:actual")
+      mockCaasClient.getCurrentImage(SECURITY) returns Future.successful("image:actual")
       mockCaasClient.updateImage(any, any, any) returns Future.successful(tgtProto.image)
       await(executor.execute(upgradeBaseSvc)) must matching(s"upgraded base service 'security' from .*image:actual.* to .*image:target")
-      there was one(mockCaasClient).updateImage("security", tgtProto.image, Seq("image:actual", "image:target"))
+      there was one(mockCaasClient).updateImage(SECURITY, tgtProto.image, Seq("image:actual", "image:target"))
     }
 
     "properly roll-back base service" in new WithConfig {
       mockCaasClient.updateImage(any, any, any) returns Future.successful("image:actual")
       await(executor.revert(upgradeBaseSvc)) must matching(s"reverted base service 'security' to image:actual")
-      there was one(mockCaasClient).updateImage("security", "image:actual", Seq.empty)
+      there was one(mockCaasClient).updateImage(SECURITY, "image:actual", Seq.empty)
     }
 
   }

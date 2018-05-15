@@ -43,11 +43,11 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
         ))
         if (updated.image.contains(tgt.image))
       } yield s"upgraded meta executor ${updated.name} (${updated.id}) from ${planned.getProto} to ${updated.getProto}"
-    case UpgradeBaseService(svcName, _, tgtImg, plannedImg) =>
+    case UpgradeBaseService(service, _, tgtImg, plannedImg) =>
       for {
         caasClient <- caasClientFactory.ask(CaasClientFactory.GetClient)(30 seconds).mapTo[CaasClient]
-        updated <- caasClient.updateImage(svcName, tgtImg, Seq(plannedImg, tgtImg))
-      } yield s"upgraded base service '$svcName' from $plannedImg to $tgtImg"
+        updated <- caasClient.updateImage(service, tgtImg, Seq(plannedImg, tgtImg))
+      } yield s"upgraded base service '${service.name}' from $plannedImg to $tgtImg"
   }
 
   override def revert(step: UpgradeStep): Future[String] = step match {
@@ -63,11 +63,11 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
         updated <- metaClient.updateProvider(planned)
         if (updated.getProto == planned.getProto)
       } yield s"reverted meta executor ${updated.name} (${updated.id}) to ${updated.image.get}"
-    case UpgradeBaseService(svcName, _, tgtImg, plannedImg) =>
+    case UpgradeBaseService(service, _, tgtImg, plannedImg) =>
       for {
         caasClient <- caasClientFactory.ask(CaasClientFactory.GetClient)(30 seconds).mapTo[CaasClient]
-        updated <- caasClient.updateImage(svcName, plannedImg, Seq.empty)
+        updated <- caasClient.updateImage(service, plannedImg, Seq.empty)
         if (updated == plannedImg)
-      } yield s"reverted base service '$svcName' to $plannedImg"
+      } yield s"reverted base service '${service.name}' to $plannedImg"
   }
 }

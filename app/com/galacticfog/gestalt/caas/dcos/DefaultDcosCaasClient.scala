@@ -2,7 +2,7 @@ package com.galacticfog.gestalt.caas.dcos
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.galacticfog.gestalt.MetaProvider
+import com.galacticfog.gestalt.{BaseService, MetaProvider}
 import com.galacticfog.gestalt.caas.CaasClient
 import modules.WSClientFactory
 import play.api.http.HeaderNames
@@ -91,15 +91,15 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
     } yield req
   }
 
-  override def getCurrentImage(serviceName: String): Future[String] = {
-    log.info(s"looking up '$serviceName' against CaaS API")
+  override def getCurrentImage(service: BaseService): Future[String] = {
+    log.info(s"looking up '${service.name}' against CaaS API")
     for {
-      req <- genRequest(s"/v2/apps/$appGroupPrefix/$serviceName")
+      req <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
       resp <- req.get()
       json <- processResponse(resp)
       image <- (json \ "app" \ "container" \ "docker" \ "image").validate[String] match {
         case JsSuccess(img,_) =>
-          log.info(s"${serviceName} has image: $img")
+          log.info(s"${service.name} has image: $img")
           Future.successful(img)
         case JsError(_) =>
           Future.failed(new RuntimeException("could not determine docker image from Marathon app response"))
@@ -107,12 +107,12 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
     } yield image
   }
 
-  override def updateImage(serviceName: String, newImage: String, expectedImages: Seq[String]): Future[String] = {
-    log.info(s"updating '$serviceName' to '$newImage' image against CaaS API")
+  override def updateImage(service: BaseService, newImage: String, expectedImages: Seq[String]): Future[String] = {
+    log.info(s"updating '${service.name}' to '$newImage' image against CaaS API")
     val imageUpdater = (__ \ 'container \ 'docker \ 'image).json.put(JsString(newImage))
 
     for {
-      getReq <- genRequest(s"/v2/apps/$appGroupPrefix/$serviceName")
+      getReq <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
       getResp <- getReq.get()
       app = (getResp.json \ "app").as[JsObject]
       currentImage = (app \ "container" \ "docker" \ "image").as[String]
@@ -120,7 +120,7 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
         new RuntimeException("image was different than expected")
       ) else Future.successful(())
       newApp <- Future.fromTry(Try(app.transform(imageUpdater).get))
-      putReq <- genRequest(s"/v2/apps/$appGroupPrefix/$serviceName")
+      putReq <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
       putResp <- putReq.put(newApp)
       if putResp.status == 200
     } yield newImage

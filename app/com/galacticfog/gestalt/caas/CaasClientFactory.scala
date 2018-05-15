@@ -15,8 +15,8 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 trait CaasClient {
-  def getCurrentImage(serviceName: String): Future[String]
-  def updateImage(serviceName: String, newImage: String, expectedImages: Seq[String]): Future[String]
+  def getCurrentImage(service: BaseService): Future[String]
+  def updateImage(service: BaseService, newImage: String, expectedImages: Seq[String]): Future[String]
 }
 
 object CaasClientFactory {

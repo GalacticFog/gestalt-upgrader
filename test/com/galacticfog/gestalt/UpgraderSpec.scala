@@ -1,7 +1,7 @@
 package com.galacticfog.gestalt
 
 import akka.actor.{ActorRef, ActorSystem}
-import akka.persistence.fsm.PersistentFSM.{CurrentState, SubscribeTransitionCallBack}
+import akka.persistence.fsm.PersistentFSM.{CurrentState, SubscribeTransitionCallBack, Transition}
 import akka.testkit.{ImplicitSender, TestFSMRef, TestKit, TestProbe}
 import com.galacticfog.gestalt.Upgrader.{UpgraderData, UpgraderState}
 import com.galacticfog.gestalt.caas.{CaasClient, CaasClientFactory}
@@ -47,11 +47,25 @@ class UpgraderSpec extends Specification with Mockito {
           .injector
     }
 
-    "plan to upgrade all base services to release-1.6.0" in new WithConfig() {
+    "execute all upgrade steps in plan" in new WithConfig() {
       val upgraderRef: ActorRef = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(Upgrader.actorName))
+
+      val plan = Seq(
+        BackupDatabase,
+        UpgradeBaseService(SECURITY, "security:expected", "security:target", "security:actual"),
+        UpgradeExecutor(MetaProviderProto("executor:expected"), MetaProviderProto("executor:target"), MetaProvider(
+          "root", "executor", uuid, ResourceIds.JavaExecutor, Some("executor:actual")
+        )),
+        UpgradeProvider(MetaProviderProto("laser:expected"), MetaProviderProto("laser:target"), MetaProvider(
+          "root", "laser", uuid, ResourceIds.LambdaProvider, Some("laser:actual")
+        ))
+      )
 
       upgraderRef ! SubscribeTransitionCallBack(testActor)
       expectMsg(CurrentState(upgraderRef, Upgrader.Stopped, None))
+
+      upgraderRef ! Upgrader.StartUpgrade(plan)
+      expectMsg(Transition(upgraderRef, Upgrader.Stopped, Upgrader.Running, None))
     }
 
   }
