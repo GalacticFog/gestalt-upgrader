@@ -73,7 +73,7 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
     "properly upgrade Meta provider services" in new WithConfig {
       mockMetaClient.getProvider(metaProvider.fqon, metaProvider.id) returns Future.successful(metaProvider)
       mockMetaClient.updateProvider(any) answers {(a: Any) => Future.successful(a.asInstanceOf[MetaProvider])}
-      await(executor.execute(upgradeProvider)) must matching(s"upgraded meta provider.*${metaProvider.id}.*from image:actual to image:target")
+      await(executor.execute(upgradeProvider)) must matching(s"upgraded meta provider.*${metaProvider.id}.*from .*image:actual.* to .*image:target.*")
       there was one(mockMetaClient).getProvider(metaProvider.fqon, metaProvider.id)
       there was one(mockMetaClient).updateProvider(metaProvider.copy(
         image = Some(tgtProto.image)
@@ -99,7 +99,7 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
     "properly upgrade Meta executor provider" in new WithConfig {
       mockMetaClient.getProvider(metaExecutor.fqon, metaExecutor.id) returns Future.successful(metaExecutor)
       mockMetaClient.updateProvider(any) answers {(a: Any) => Future.successful(a.asInstanceOf[MetaProvider])}
-      await(executor.execute(upgradeExecutor)) must matching(s"upgraded meta executor.*${metaExecutor.id}.*from image:actual to image:target")
+      await(executor.execute(upgradeExecutor)) must matching(s"upgraded meta executor.*${metaExecutor.id}.*from .*image:actual.* to .*image:target.*")
       there was one(mockMetaClient).getProvider(metaExecutor.fqon, metaExecutor.id)
       there was one(mockMetaClient).updateProvider(metaExecutor.copy(
         image = Some(tgtProto.image)
@@ -108,7 +108,7 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
 
     "properly roll-back Meta executor provider" in new WithConfig {
       mockMetaClient.updateProvider(any) answers {(a: Any) => Future.successful(a.asInstanceOf[MetaProvider])}
-      await(executor.revert(upgradeExecutor)) must matching(s"reverted meta executor.*${metaExecutor.id}.*to image:actual")
+      await(executor.revert(upgradeExecutor)) must matching(s"reverted meta executor.*${metaExecutor.id}.*to .*image:actual")
       there was one(mockMetaClient).updateProvider(metaExecutor)
     }
 
@@ -125,14 +125,14 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
     "properly upgrade base service" in new WithConfig {
       mockCaasClient.getCurrentImage("security") returns Future.successful("image:actual")
       mockCaasClient.updateImage(any, any, any) returns Future.successful(tgtProto.image)
-      await(executor.execute(upgradeBaseSvc)) must matching(s"upgraded base service 'security' from image:actual to image:target")
-      there was one(mockCaasClient).updateImage("security", tgtProto.image, Some("image:actual"))
+      await(executor.execute(upgradeBaseSvc)) must matching(s"upgraded base service 'security' from .*image:actual.* to .*image:target")
+      there was one(mockCaasClient).updateImage("security", tgtProto.image, Seq("image:actual", "image:target"))
     }
 
     "properly roll-back base service" in new WithConfig {
       mockCaasClient.updateImage(any, any, any) returns Future.successful("image:actual")
       await(executor.revert(upgradeBaseSvc)) must matching(s"reverted base service 'security' to image:actual")
-      there was one(mockCaasClient).updateImage("security", "image:actual", None)
+      there was one(mockCaasClient).updateImage("security", "image:actual", Seq.empty)
     }
 
   }

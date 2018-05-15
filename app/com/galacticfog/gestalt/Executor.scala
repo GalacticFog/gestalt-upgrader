@@ -31,7 +31,7 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
           image = Some(tgt.image)
         ))
         if (updated.image.contains(tgt.image))
-      } yield s"upgraded meta provider ${updated.name} (${updated.id}) from ${planned.image.get} to ${updated.image.get}"
+      } yield s"upgraded meta provider ${updated.name} (${updated.id}) from ${planned.getProto} to ${updated.getProto}"
     case UpgradeExecutor(_, tgt, planned) =>
       for {
         actual <- metaClient.getProvider(planned.fqon, planned.id)
@@ -42,11 +42,11 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
           image = Some(tgt.image)
         ))
         if (updated.image.contains(tgt.image))
-      } yield s"upgraded meta executor ${updated.name} (${updated.id}) from ${planned.image.get} to ${updated.image.get}"
+      } yield s"upgraded meta executor ${updated.name} (${updated.id}) from ${planned.getProto} to ${updated.getProto}"
     case UpgradeBaseService(svcName, _, tgtImg, plannedImg) =>
       for {
         caasClient <- caasClientFactory.ask(CaasClientFactory.GetClient)(30 seconds).mapTo[CaasClient]
-        updated <- caasClient.updateImage(svcName, tgtImg, Some(plannedImg))
+        updated <- caasClient.updateImage(svcName, tgtImg, Seq(plannedImg, tgtImg))
       } yield s"upgraded base service '$svcName' from $plannedImg to $tgtImg"
   }
 
@@ -56,17 +56,17 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
     case UpgradeProvider(_, _, planned) =>
       for {
         updated <- metaClient.updateProvider(planned)
-        if (updated.image.get == planned.image.get)
+        if (updated.getProto == planned.getProto)
       } yield s"reverted meta provider ${updated.name} (${updated.id}) to ${updated.image.get}"
     case UpgradeExecutor(_, _, planned) =>
       for {
         updated <- metaClient.updateProvider(planned)
-        if (updated.image.get == planned.image.get)
+        if (updated.getProto == planned.getProto)
       } yield s"reverted meta executor ${updated.name} (${updated.id}) to ${updated.image.get}"
     case UpgradeBaseService(svcName, _, tgtImg, plannedImg) =>
       for {
         caasClient <- caasClientFactory.ask(CaasClientFactory.GetClient)(30 seconds).mapTo[CaasClient]
-        updated <- caasClient.updateImage(svcName, plannedImg, None)
+        updated <- caasClient.updateImage(svcName, plannedImg, Seq.empty)
         if (updated == plannedImg)
       } yield s"reverted base service '$svcName' to $plannedImg"
   }

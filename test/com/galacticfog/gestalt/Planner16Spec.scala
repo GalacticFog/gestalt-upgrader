@@ -33,7 +33,7 @@ class Planner16Spec extends Specification with Mockito {
       override def configure(): Unit = {
         bindActor[UpgradeManager](UpgradeManager.actorName)
         bindActor[Planner16](Planner.actorName)
-        bindActor[Upgrader16](Upgrader.actorName)
+        bindActor[Upgrader](Upgrader.actorName)
         bind[MetaClient].toInstance(mockMetaClient)
         bind[Executor].toInstance(mock[Executor])
         bind(classOf[ActorRef]).annotatedWith(Names.named(CaasClientFactory.actorName)).toInstance(testCaasFactory.ref)

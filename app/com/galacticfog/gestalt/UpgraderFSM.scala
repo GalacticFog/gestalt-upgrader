@@ -7,9 +7,6 @@ import javax.inject.Inject
 
 import scala.reflect.{ClassTag, classTag}
 
-
-trait Upgrader
-
 object Upgrader {
   final val actorName = "upgrader"
 
@@ -39,8 +36,8 @@ object Upgrader {
                            failedStep: Option[(UpgradeStep, Throwable)] )
 }
 
-class Upgrader16 @Inject()(executor: Executor)
-  extends PersistentFSM[UpgraderState,UpgraderData,UpgraderEvent] with Upgrader {
+class Upgrader @Inject()(executor: Executor)
+  extends PersistentFSM[UpgraderState,UpgraderData,UpgraderEvent] {
 
   override def domainEventClassTag: ClassTag[UpgraderEvent] = classTag[UpgraderEvent]
 

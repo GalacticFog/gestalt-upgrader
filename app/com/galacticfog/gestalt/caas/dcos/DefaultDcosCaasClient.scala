@@ -107,7 +107,7 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
     } yield image
   }
 
-  override def updateImage(serviceName: String, newImage: String, expectedImage: Option[String]): Future[String] = {
+  override def updateImage(serviceName: String, newImage: String, expectedImages: Seq[String]): Future[String] = {
     log.info(s"updating '$serviceName' to '$newImage' image against CaaS API")
     val imageUpdater = (__ \ 'container \ 'docker \ 'image).json.put(JsString(newImage))
 
@@ -116,7 +116,7 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
       getResp <- getReq.get()
       app = (getResp.json \ "app").as[JsObject]
       currentImage = (app \ "container" \ "docker" \ "image").as[String]
-      _ <- if (expectedImage.exists(_ != currentImage)) Future.failed(
+      _ <- if (expectedImages.nonEmpty && !expectedImages.contains(currentImage)) Future.failed(
         new RuntimeException("image was different than expected")
       ) else Future.successful(())
       newApp <- Future.fromTry(Try(app.transform(imageUpdater).get))

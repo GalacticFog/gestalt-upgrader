@@ -16,7 +16,7 @@ class DefaultComponentModule extends ScalaModule with AkkaGuiceSupport {
 
   override def configure(): Unit = {
     bindActor[UpgradeManager](UpgradeManager.actorName)
-    bindActor[Upgrader16](Upgrader.actorName)
+    bindActor[Upgrader](Upgrader.actorName)
     bindActor[Planner16](Planner.actorName)
     bindActor[DCOSAuthTokenActor](DCOSAuthTokenActor.actorName)
     bindActor[DefaultCaasClientFactory](CaasClientFactory.actorName)
