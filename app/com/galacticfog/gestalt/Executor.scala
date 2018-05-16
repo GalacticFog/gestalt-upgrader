@@ -48,6 +48,9 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
         caasClient <- caasClientFactory.ask(CaasClientFactory.GetClient)(30 seconds).mapTo[CaasClient]
         updated <- caasClient.updateImage(service, tgtImg, Seq(plannedImg, tgtImg))
       } yield s"upgraded base service '${service.name}' from $plannedImg to $tgtImg"
+    case MetaMigration(version) =>
+      // metaClient.performMigration(version).map(_ => "Migration completed")
+      Future.successful(s"MetaMigration($version) disabled")
   }
 
   override def revert(step: UpgradeStep): Future[String] = step match {
@@ -69,5 +72,7 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
         updated <- caasClient.updateImage(service, plannedImg, Seq.empty)
         if (updated == plannedImg)
       } yield s"reverted base service '${service.name}' to $plannedImg"
+    case MetaMigration(_) =>
+      Future.successful("Meta migrations cannot be reverted; database restore will handle this")
   }
 }

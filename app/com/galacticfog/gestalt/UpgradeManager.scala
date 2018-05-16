@@ -24,19 +24,33 @@ class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
 
   private[this] var currentPlan: Seq[UpgradeStep] = _
 
-  private[this] val currentLog = scala.collection.mutable.ListBuffer.empty[String]
+  override def preStart = context.system.eventStream.subscribe(self, classOf[Upgrader.UpgraderEvent])
 
   override def receiveRecover: Receive = {
     case RecoveryCompleted =>
       log.info("recovery completed")
     case Planner.UpgradePlan(steps) =>
+      log.info("recovering plan")
       updatePlan(steps)
     case e: CompletionEvent =>
+      log.info(s"recovering status $e")
       updateStatus(e)
     case e => println(e)
   }
 
   override def receiveCommand: Receive = {
+    case Upgrader.UpgradeComplete =>
+      persist(UpgradeManager.UpgradeCompleted) {
+        evt => updateStatus(evt)
+      }
+    case Upgrader.CurrentStepFailed(_) =>
+      persist(UpgradeManager.UpgradeFailed) {
+        evt => updateStatus(evt)
+      }
+    case Upgrader.UpgradeStarted(_) =>
+      persist(UpgradeManager.UpgradeStarted) {
+        evt => updateStatus(evt)
+      }
     case GetStatus => sender() ! currentState
     case StartUpgrade(permissive) =>
       if (currentState.isRunning)
@@ -51,9 +65,7 @@ class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
         sender() ! Failure(new BadRequestException("plan has warnings; specify ?permissive=true to override"))
       else {
         sender() ! true
-        persist(UpgradeStarted) {
-          evt => updateStatus(evt)
-        }
+        upgrader ! Upgrader.StartUpgrade(currentPlan)
       }
     case StopUpgrade(rollback) =>
       sender() ! Failure(new NotImplementedError)
@@ -69,7 +81,7 @@ class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
       }
     case GetLog =>
       if (currentState.isComplete || currentState.isFailed || currentState.isRunning) {
-        sender() ! currentLog
+        upgrader.tell(Upgrader.GetLog, sender())
       } else {
         sender() ! Failure(new BadRequestException("log does not exist; start upgrade first"))
       }
@@ -96,15 +108,6 @@ class UpgradeManager @Inject()( @Named(Upgrader.actorName) upgrader: ActorRef,
         isRunning = true,
         isComplete = false,
         isFailed = false
-      )
-      currentLog ++= Seq(
-        "Backing up database...",
-        "Backup complete.",
-        "Backup available from https://gtw1.galactic-equity.com/upgrade/7401e17a-ed9a-447c-941c-893ed4d40ca5/database.tgz",
-        "Upgrading security from galacticfog/gestalt-security:release-1.5.0 to galacticfog/gestalt-security:release-1.6.0",
-        "Security upgraded.",
-        "Security healthy.",
-        "Upgrading meta from galacticfog/gestalt-meta:release-1.5.0 to galacticfog/gestalt-meta:release-1.6.0"
       )
     case UpgradeCompleted =>
       currentState = currentState.copy(

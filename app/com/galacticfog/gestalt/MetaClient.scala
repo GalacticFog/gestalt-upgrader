@@ -21,6 +21,7 @@ trait MetaClient {
   def getProvider(fqon: String, id: UUID): Future[MetaProvider]
   def listProviders: Future[Seq[MetaProvider]]
   def updateProvider(metaProvider: MetaProvider): Future[MetaProvider]
+  def performMigration(version: String): Future[String]
 }
 
 trait MetaClientParsing {
@@ -100,8 +101,8 @@ class DefaultMetaClient @Inject() ( ws: WSClient, config: Configuration )
     }
   }
 
-  private[this] def post(endpoint: String, qs: (String,String)*): Future[Unit] = {
-    genRequest(endpoint, qs:_*).execute("POST") map {_ => ()} recoverWith {
+  private[this] def post(endpoint: String, qs: (String,String)*): Future[JsValue] = {
+    genRequest(endpoint, qs:_*).execute("POST") flatMap processResponse recoverWith {
       case e: Throwable =>
         logger.error(s"error during POST(${endpoint})", e)
         Future.failed(e)
@@ -161,4 +162,9 @@ class DefaultMetaClient @Inject() ( ws: WSClient, config: Configuration )
     }
   }
 
+  override def performMigration(version: String): Future[String] = {
+    post(s"/migrate", "version" -> version).map {
+      j => (j \ "message").asOpt[String].getOrElse("Migration complete")
+    }
+  }
 }

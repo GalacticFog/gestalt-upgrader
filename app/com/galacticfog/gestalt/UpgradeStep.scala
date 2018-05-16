@@ -32,6 +32,11 @@ case object UI extends BaseService {
   def name = "ui-react"
 }
 
+case class MetaMigration(version: String) extends UpgradeStep {
+  override def warning: Boolean = false
+  override def message: String = s"Perform meta schema migration $version"
+}
+
 case class UpgradeBaseService(service: BaseService, expected: String, target: String, actual: String) extends UpgradeStep {
   override def message: String = {
     val msg = s"Upgrade base service ${service.name} from ${actual} to ${target}"

@@ -16,6 +16,7 @@ object Planner {
   final val actorName = "planner"
 
   case object ComputePlan
+  case object GetPlan
   case class UpgradePlan(steps: Seq[UpgradeStep])
 }
 
@@ -52,7 +53,7 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
     ResourceIds.PolicyProvider    -> "galacticfog/gestalt-policy:release-",
     ResourceIds.LoggingProvider   -> "galacticfog/gestalt-logger:release-",
 
-    ResourceIds.GoLangExecutor    -> "galacticfog/gestalt-laser-executor-go:release-",
+    ResourceIds.GoLangExecutor    -> "galacticfog/gestalt-laser-executor-golang:release-",
     ResourceIds.JavaExecutor      -> "galacticfog/gestalt-laser-executor-jvm:release-",
     ResourceIds.NashornExecutor   -> "galacticfog/gestalt-laser-executor-js:release-",
     ResourceIds.NodeJsExecutor    -> "galacticfog/gestalt-laser-executor-nodejs:release-",
@@ -60,6 +61,12 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
     ResourceIds.RubyExecutor      -> "galacticfog/gestalt-laser-executor-ruby:release-",
     ResourceIds.CsharpExecutor    -> "galacticfog/gestalt-laser-executor-dotnet:release-"
   ) map simpleProviderUpgrade
+
+  val metaMigrations = Seq(
+    MetaMigration("V1"),
+    MetaMigration("V2"),
+    MetaMigration("V3")
+  )
 
   override def receive: Receive = {
     case ComputePlan =>
@@ -92,7 +99,7 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
           }
         }
       } yield UpgradePlan(
-        Seq(BackupDatabase) ++ base ++ updateExecs ++ updatedProviders
+        Seq(BackupDatabase) ++ base ++ metaMigrations ++ updateExecs ++ updatedProviders
       )
 
       plan pipeTo sender()
