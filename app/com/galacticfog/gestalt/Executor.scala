@@ -26,11 +26,13 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
       for {
         caasClient <- getCaasClient
         newSvc <- caasClient.scale(svc, svc.numInstances)
+        if (newSvc.numInstances == svc.numInstances)
       } yield s"resumed base service '${svc.name}' to ${newSvc.numInstances} instances"
     case SuspendBaseService(svc) =>
       for {
         caasClient <- getCaasClient
         newSvc <- caasClient.scale(svc, 0)
+        if (newSvc.numInstances == 0)
       } yield s"suspended base service '${svc.name}' to ${newSvc.numInstances} instances"
     case BackupDatabase =>
       Future.successful("database backup not yet supported")
@@ -41,7 +43,7 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
           new RuntimeException("provider was different than in computed plan; please recompute plan and try again")
         )
         updated <- metaClient.updateProvider(actual, tgt)
-        if (updated.image.contains(tgt.image))
+        if (updated.getProto == tgt)
       } yield s"upgraded meta provider ${updated.name} (${updated.id}) from ${planned.getProto} to ${updated.getProto}"
     case UpgradeExecutor(_, tgt, planned) =>
       for {
@@ -50,7 +52,7 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
           new RuntimeException("executor was different than in computed plan; please recompute plan and try again")
         )
         updated <- metaClient.updateProvider(actual, tgt)
-        if (updated.image.contains(tgt.image))
+        if (updated.getProto == tgt)
       } yield s"upgraded meta executor ${updated.name} (${updated.id}) from ${planned.getProto} to ${updated.getProto}"
     case UpgradeBaseService(_, target, planned) =>
       for {
@@ -60,9 +62,9 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
           new RuntimeException("base service was different than in computed plan; please recompute plan and try again")
         )
         updated <- caasClient.update(actual, target)
+        if (updated.getProto == target)
       } yield s"upgraded base service '${actual.name}' from ${actual.getProto} to ${updated.getProto}"
     case MetaMigration(version) =>
-      // metaClient.performMigration(version).map(_ => "Migration completed")
       Future.successful(s"MetaMigration($version) disabled")
   }
 

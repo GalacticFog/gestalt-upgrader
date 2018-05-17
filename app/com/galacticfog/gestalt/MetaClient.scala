@@ -110,7 +110,7 @@ class DefaultMetaClient @Inject() ( ws: WSClient, config: Configuration )
   }
 
   private[this] def patch(endpoint: String, payload: JsValue, qs: (String,String)*): Future[JsValue] = {
-    logger.info(s"PATCH : $payload")
+    logger.debug(s"PATCH : $payload")
     genRequest(endpoint, qs:_*).patch(payload) flatMap processResponse recoverWith {
       case e: Throwable =>
         logger.error(s"error during PATCH(${endpoint}", e)

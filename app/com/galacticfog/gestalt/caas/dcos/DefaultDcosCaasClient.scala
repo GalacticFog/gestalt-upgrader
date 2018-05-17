@@ -114,17 +114,19 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
   }
 
   override def update(service: BaseService, target: BaseServiceProto): Future[BaseService] = {
-    log.info(s"updating '${service.name}' to '${target.image}' image against CaaS API")
     val imageUpdater = __.json.pickBranch(
       (__ \ "container" \ "docker" \ "image").json.update( __.read(Reads.pure(JsString(target.image))) )
         andThen
         (__ \ "version").json.prune
     )
+    updateMarathonApp(service, imageUpdater)
+  }
 
+  private[this] def updateMarathonApp(service: BaseService, update: Reads[JsObject]): Future[DcosBaseService] = {
     for {
       dcosApp <- Future.fromTry(Try(service.asInstanceOf[DcosBaseService]))
       _ = log.debug(s"old app: ${dcosApp.json}")
-      newJson <- Future.fromTry(Try(dcosApp.json.transform(imageUpdater).get))
+      newJson <- Future.fromTry(Try(dcosApp.json.transform(update).get))
       _ = log.debug(s"new app: $newJson")
       putReq <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
       putResp <- putReq.put(newJson)
@@ -136,5 +138,12 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
     )
   }
 
-  override def scale(service: BaseService, numInstance: Int): Future[BaseService] = ???
+  override def scale(service: BaseService, numInstance: Int): Future[BaseService] = {
+    val scaleUpdater = __.json.pickBranch(
+      (__ \ "instances" \ "docker" \ "image").json.update( __.read(Reads.pure(JsNumber(numInstance))) )
+        andThen
+        (__ \ "version").json.prune
+    )
+    updateMarathonApp(service, scaleUpdater)
+  }
 }
