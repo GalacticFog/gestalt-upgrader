@@ -72,18 +72,16 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
 
     "properly upgrade Meta provider services" in new WithConfig {
       mockMetaClient.getProvider(metaProvider.fqon, metaProvider.id) returns Future.successful(metaProvider)
-      mockMetaClient.updateProvider(any) answers {(a: Any) => Future.successful(a.asInstanceOf[MetaProvider])}
+      mockMetaClient.updateProvider(any,any) returns Future.successful(metaProvider.copy(image = Some(tgtProto.image)))
       await(executor.execute(upgradeProvider)) must matching(s"upgraded meta provider.*${metaProvider.id}.*from .*image:actual.* to .*image:target.*")
       there was one(mockMetaClient).getProvider(metaProvider.fqon, metaProvider.id)
-      there was one(mockMetaClient).updateProvider(metaProvider.copy(
-        image = Some(tgtProto.image)
-      ))
+      there was one(mockMetaClient).updateProvider(metaProvider,tgtProto)
     }
 
     "properly roll-back Meta provider services" in new WithConfig {
-      mockMetaClient.updateProvider(any) answers {(a: Any) => Future.successful(a.asInstanceOf[MetaProvider])}
+      mockMetaClient.updateProvider(any,any) returns Future.successful(metaProvider)
       await(executor.revert(upgradeProvider)) must matching(s"reverted meta provider.*${metaProvider.id}.*to image:actual")
-      there was one(mockMetaClient).updateProvider(metaProvider)
+      there was one(mockMetaClient).updateProvider(metaProvider, metaProvider.getProto)
     }
 
     "fail step if Meta provider is not as in plan" in new WithConfig {
@@ -92,24 +90,22 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
       ))
       await(executor.execute(upgradeProvider)) must throwA[RuntimeException]("different than in computed plan")
       there was one(mockMetaClient).getProvider(metaProvider.fqon, metaProvider.id)
-      there were no(mockMetaClient).updateProvider(any)
+      there were no(mockMetaClient).updateProvider(any,any)
     }
 
 
     "properly upgrade Meta executor provider" in new WithConfig {
       mockMetaClient.getProvider(metaExecutor.fqon, metaExecutor.id) returns Future.successful(metaExecutor)
-      mockMetaClient.updateProvider(any) answers {(a: Any) => Future.successful(a.asInstanceOf[MetaProvider])}
+      mockMetaClient.updateProvider(any,any) returns Future.successful(metaExecutor.copy(image = Some(tgtProto.image)))
       await(executor.execute(upgradeExecutor)) must matching(s"upgraded meta executor.*${metaExecutor.id}.*from .*image:actual.* to .*image:target.*")
       there was one(mockMetaClient).getProvider(metaExecutor.fqon, metaExecutor.id)
-      there was one(mockMetaClient).updateProvider(metaExecutor.copy(
-        image = Some(tgtProto.image)
-      ))
+      there was one(mockMetaClient).updateProvider(metaExecutor,tgtProto)
     }
 
     "properly roll-back Meta executor provider" in new WithConfig {
-      mockMetaClient.updateProvider(any) answers {(a: Any) => Future.successful(a.asInstanceOf[MetaProvider])}
+      mockMetaClient.updateProvider(any,any) returns Future.successful(metaExecutor)
       await(executor.revert(upgradeExecutor)) must matching(s"reverted meta executor.*${metaExecutor.id}.*to .*image:actual")
-      there was one(mockMetaClient).updateProvider(metaExecutor)
+      there was one(mockMetaClient).updateProvider(metaExecutor,metaExecutor.getProto)
     }
 
     "fail step if executor is not as in plan" in new WithConfig {
@@ -118,7 +114,7 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
       ))
       await(executor.execute(upgradeExecutor)) must throwA[RuntimeException]("different than in computed plan")
       there was one(mockMetaClient).getProvider(metaExecutor.fqon, metaExecutor.id)
-      there were no(mockMetaClient).updateProvider(any)
+      there were no(mockMetaClient).updateProvider(any,any)
     }
 
 

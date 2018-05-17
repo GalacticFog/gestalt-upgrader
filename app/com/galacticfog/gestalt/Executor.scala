@@ -24,23 +24,19 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
     case UpgradeProvider(_, tgt, planned) =>
       for {
         actual <- metaClient.getProvider(planned.fqon, planned.id)
-        _ <- if (planned.image == actual.image) Future.successful(()) else Future.failed(
+        _ <- if (actual.getProto == planned.getProto) Future.successful(()) else Future.failed(
           new RuntimeException("provider was different than in computed plan; please recompute plan and try again")
         )
-        updated <- metaClient.updateProvider(planned.copy(
-          image = Some(tgt.image)
-        ))
+        updated <- metaClient.updateProvider(actual, tgt)
         if (updated.image.contains(tgt.image))
       } yield s"upgraded meta provider ${updated.name} (${updated.id}) from ${planned.getProto} to ${updated.getProto}"
     case UpgradeExecutor(_, tgt, planned) =>
       for {
         actual <- metaClient.getProvider(planned.fqon, planned.id)
-        _ <- if (planned.image == actual.image) Future.successful(()) else Future.failed(
+        _ <- if (planned.getProto == actual.getProto) Future.successful(()) else Future.failed(
           new RuntimeException("executor was different than in computed plan; please recompute plan and try again")
         )
-        updated <- metaClient.updateProvider(planned.copy(
-          image = Some(tgt.image)
-        ))
+        updated <- metaClient.updateProvider(actual, tgt)
         if (updated.image.contains(tgt.image))
       } yield s"upgraded meta executor ${updated.name} (${updated.id}) from ${planned.getProto} to ${updated.getProto}"
     case UpgradeBaseService(service, _, tgtImg, plannedImg) =>
@@ -58,12 +54,12 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
       Future.successful("database backup not yet supported")
     case UpgradeProvider(_, _, planned) =>
       for {
-        updated <- metaClient.updateProvider(planned)
+        updated <- metaClient.updateProvider(planned, planned.getProto)
         if (updated.getProto == planned.getProto)
       } yield s"reverted meta provider ${updated.name} (${updated.id}) to ${updated.image.get}"
     case UpgradeExecutor(_, _, planned) =>
       for {
-        updated <- metaClient.updateProvider(planned)
+        updated <- metaClient.updateProvider(planned, planned.getProto)
         if (updated.getProto == planned.getProto)
       } yield s"reverted meta executor ${updated.name} (${updated.id}) to ${updated.image.get}"
     case UpgradeBaseService(service, _, tgtImg, plannedImg) =>

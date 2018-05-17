@@ -56,7 +56,7 @@ class MetaClientSpec extends Specification with Mockito with MockWSHelpers with 
     }
 
     var updatePayload: JsValue = null
-    def updateAndRedeployServiceProvider(metaProvider: MetaProvider) = Route({
+    def updateAndRedeployServiceProvider(metaProvider: MetaProvider, tgt: MetaProviderProto) = Route({
       case (PATCH, url) if url == s"$metaCallbackUrl/${metaProvider.fqon}/providers/${metaProvider.id}" => Action(BodyParser.json) { request =>
         updatePayload = request.body
         Ok(Json.obj(
@@ -72,7 +72,7 @@ class MetaClientSpec extends Specification with Mockito with MockWSHelpers with 
             "services" -> Seq(Json.obj(
               "container_spec" -> Json.obj(
                 "properties" -> Json.obj(
-                  "image" -> metaProvider.image
+                  "image" -> tgt.image
                 )
               )
             ))
@@ -84,7 +84,7 @@ class MetaClientSpec extends Specification with Mockito with MockWSHelpers with 
       }
     })
 
-    def updateExecutorProvider(metaProvider: MetaProvider) = Route({
+    def updateExecutorProvider(metaProvider: MetaProvider, tgt: MetaProviderProto) = Route({
       case (PATCH, url) if url == s"$metaCallbackUrl/${metaProvider.fqon}/providers/${metaProvider.id}" => Action(BodyParser.json) { request =>
         updatePayload = request.body
         Ok(Json.obj(
@@ -100,7 +100,7 @@ class MetaClientSpec extends Specification with Mockito with MockWSHelpers with 
             "config" -> Json.obj(
               "env" -> Json.obj(
                 "public" -> Json.obj(
-                  "IMAGE" -> metaProvider.image
+                  "IMAGE" -> tgt.image
                 )
               )
             )
@@ -155,7 +155,7 @@ class MetaClientSpec extends Specification with Mockito with MockWSHelpers with 
       "security.secret" -> "sesame"
     ) {
       await(metaClient.getProvider("root", testProviderId)) must_==
-        MetaProvider("root","golang-executor-executor",UUID.fromString("cc4bcf76-7673-46d1-805a-44e5313fce3a"),ResourceIds.GoLangExecutor,None,Json.parse("""{"env":{"private":{},"public":{"CMD":"bin/gestalt-laser-executor-golang","NAME":"golang-executor","RUNTIME":"golang"}}}""").as[JsObject]),
+        MetaProvider("root","golang-executor-executor",UUID.fromString("cc4bcf76-7673-46d1-805a-44e5313fce3a"),ResourceIds.GoLangExecutor,None,Json.parse("""{"env":{"private":{},"public":{"CMD":"bin/gestalt-laser-executor-golang","NAME":"golang-executor","RUNTIME":"golang"}}}""").as[JsObject])
     }
 
     "not-get a single provider with an appropriate error message" in new WithRoutesAndConfig(
@@ -176,52 +176,72 @@ class MetaClientSpec extends Specification with Mockito with MockWSHelpers with 
       await(metaClient.listProviders) must containTheSameElementsAs(Seq(
         MetaProvider("root","golang-executor-executor",UUID.fromString("cc4bcf76-7673-46d1-805a-44e5313fce3a"),ResourceIds.GoLangExecutor,None,Json.parse("""{"env":{"private":{},"public":{"CMD":"bin/gestalt-laser-executor-golang","NAME":"golang-executor","RUNTIME":"golang"}}}""").as[JsObject]),
         MetaProvider("root","default-security",UUID.fromString("4f1dc4df-b26e-4001-a4d2-4b8bf4d8a4c8"),ResourceIds.SecurityProvider,None,Json.parse("""{"env":{"private":{},"public":{"HOSTNAME":"test-galacticfog-com-security.gestalt","KEY":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","PORT":"9455","PROTOCOL":"http","SECRET":"sssshhhhhhhh"}}}""").as[JsObject]),
-        MetaProvider("engineering","default-rabbit",UUID.fromString("38eec176-d43b-423c-9a28-e4b13cb838c4"),ResourceIds.RabbitProvider,Some("rabbit:latest"),Json.parse("""{"env":{"private":{},"public":{"SERVICE_HOST":"rabbit.test-galacticfog-com.marathon.mesos","SERVICE_PORT":"5672"}}}""").as[JsObject]),
+        MetaProvider("engineering","default-rabbit",UUID.fromString("38eec176-d43b-423c-9a28-e4b13cb838c4"),ResourceIds.RabbitProvider,Some("rabbit:latest"),Json.parse("""{"env":{"private":{},"public":{"SERVICE_HOST":"rabbit.test-galacticfog-com.marathon.mesos","SERVICE_PORT":"5672"}}}""").as[JsObject],Seq(Json.parse("""{"container_spec":{"properties":{"image":"rabbit:latest"}}}""").as[JsObject])),
         MetaProvider("engineering","jvm-executor-executor",UUID.fromString("02480d90-bd62-4a37-a1c2-5be0afeab5ff"),ResourceIds.JavaExecutor,Some("galacticfog/gestalt-laser-executor-jvm:1.21.6-SNAPSHOT-a797b743"),Json.parse("""{"env":{"private":{},"public":{"CMD":"bin/gestalt-laser-executor-jvm","IMAGE":"galacticfog/gestalt-laser-executor-jvm:1.21.6-SNAPSHOT-a797b743","NAME":"jvm-executor","RUNTIME":"java;scala"}}}""").as[JsObject])
       ))
     }
 
-    val svcProvider = MetaProvider(
+    val svcProviderOrig = MetaProvider(
       fqon = "some-org",
       name = "some-svc-provider",
       id = uuid,
       providerType = ResourceIds.KongGateway,
-      image = Some("image:new-svc-image")
+      image = Some("image:original"),
+      config = Json.obj(),
+      services = Seq(Json.obj(
+        "container_spec" -> Json.obj(
+          "properties" -> Json.obj(
+            "image" -> "image:original"
+          )
+        )
+      ))
+    )
+    val svcProviderTgt = MetaProviderProto(
+      image = "image:new"
     )
 
-    val execProvider = MetaProvider(
+    val execProviderOrig = MetaProvider(
       fqon = "some-org",
       name = "some-executor",
       id = uuid,
       providerType = ResourceIds.NashornExecutor,
-      image = Some("image:new-image")
+      image = Some("image:original")
+    )
+    val execProviderTgt = MetaProviderProto(
+      image = "image:new"
     )
 
     "update and redeploy service provider" in new WithRoutesAndConfig(
-      routes = updateAndRedeployServiceProvider(svcProvider) orElse notFoundRoute,
+      routes = updateAndRedeployServiceProvider(svcProviderOrig,svcProviderTgt) orElse notFoundRoute,
       "meta.callback-url" -> "http://meta.test:14374/",
       "security.key" -> "open",
       "security.secret" -> "sesame"
     ) {
-      await(metaClient.updateProvider(svcProvider)).image must beSome(svcProvider.image.get)
+      await(metaClient.updateProvider(svcProviderOrig,svcProviderTgt)).image must beSome(svcProviderTgt.image)
       updatePayload must_== Json.arr(Json.obj(
-        "path" -> "/properties/services/0/container_spec/properties/image",
+        "path" -> "/properties/services",
         "op" -> "replace",
-        "value" -> svcProvider.image
+        "value" -> Seq(Json.obj(
+          "container_spec" -> Json.obj(
+            "properties" -> Json.obj(
+              "image" -> "image:new"
+            )
+          )
+        ))
       ))
     }
 
     "update and redeploy executor provider" in new WithRoutesAndConfig(
-      routes = updateExecutorProvider(execProvider) orElse notFoundRoute,
+      routes = updateExecutorProvider(execProviderOrig,execProviderTgt) orElse notFoundRoute,
       "meta.callback-url" -> "http://meta.test:14374/",
       "security.key" -> "open",
       "security.secret" -> "sesame"
     ) {
-      await(metaClient.updateProvider(execProvider)).image must beSome(execProvider.image.get)
+      await(metaClient.updateProvider(execProviderOrig,execProviderTgt)).image must beSome(execProviderTgt.image)
       updatePayload must_== Json.arr(Json.obj(
         "path" -> "/properties/config/env/public/IMAGE",
         "op" -> "replace",
-        "value" -> execProvider.image
+        "value" -> execProviderTgt.image
       ))
     }
 

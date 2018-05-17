@@ -123,9 +123,9 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
       _ <- if (expectedImages.nonEmpty && !expectedImages.contains(currentImage)) Future.failed(
         new RuntimeException("image was different than expected")
       ) else Future.successful(())
-      _ = log.info(s"old app: $app")
+      _ = log.debug(s"old app: $app")
       newApp <- Future.fromTry(Try(app.transform(imageUpdater).get))
-      _ = log.info(s"new app: $newApp")
+      _ = log.debug(s"new app: $newApp")
       putReq <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
       putResp <- putReq.put(newApp)
       _ <- if (putResp.status == 200) Future.successful(()) else Future.failed(
