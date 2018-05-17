@@ -45,7 +45,7 @@ class UpgraderSpec extends Specification with Mockito {
 
     val plan = Seq(
       BackupDatabase,
-      UpgradeBaseService(SECURITY, "security:expected", "security:target", "security:actual"),
+      UpgradeBaseService(BaseServiceProto("security:expected"), BaseServiceProto("security:target"), new BaseService{val name="sec"; val image="sec:actual"; val numInstances=0}),
       UpgradeExecutor(MetaProviderProto("executor:expected"), MetaProviderProto("executor:target"), MetaProvider(
         "root", "executor", uuid, ResourceIds.JavaExecutor, Some("executor:actual")
       )),

@@ -2,7 +2,7 @@ package com.galacticfog.gestalt.caas.dcos
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import com.galacticfog.gestalt.{BaseService, MetaProvider}
+import com.galacticfog.gestalt.{BaseService, BaseServiceProto, MetaProvider}
 import com.galacticfog.gestalt.caas.CaasClient
 import modules.WSClientFactory
 import play.api.http.HeaderNames
@@ -14,11 +14,24 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
+object DefaultDcosCaasClient {
+  case class DcosBaseService(name: String, json: JsObject) extends BaseService {
+    override def image: String = (json \ "app" \ "container" \ "docker" \ "image").asOpt[String].getOrElse(
+      throw new RuntimeException("could not parse '.container.docker.image' from Marathon app response")
+    )
+    override def numInstances: Int = (json \ "app" \ "instances").asOpt[Int].getOrElse(
+      throw new RuntimeException("could not parse '.instances' from Marathon app response")
+    )
+  }
+}
+
 class DefaultDcosCaasClient( wsFactory: WSClientFactory,
                              config: Configuration,
                              provider: MetaProvider,
                              authTokenActor: ActorRef )
                            ( implicit executionContext: ExecutionContext ) extends CaasClient {
+
+  import DefaultDcosCaasClient._
 
   val log = Logger(this.getClass)
 
@@ -91,46 +104,37 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
     } yield req
   }
 
-  override def getCurrentImage(service: BaseService): Future[String] = {
-    log.info(s"looking up '${service.name}' against CaaS API")
+  override def getService(serviceName: String): Future[BaseService] = {
+    log.info(s"looking up '$serviceName' against CaaS API")
     for {
-      req <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
+      req <- genRequest(s"/v2/apps/$appGroupPrefix/$serviceName")
       resp <- req.get()
       json <- processResponse(resp)
-      image <- (json \ "app" \ "container" \ "docker" \ "image").validate[String] match {
-        case JsSuccess(img,_) =>
-          log.info(s"${service.name} has image: $img")
-          Future.successful(img)
-        case JsError(_) =>
-          Future.failed(new RuntimeException("could not determine docker image from Marathon app response"))
-      }
-    } yield image
+    } yield DcosBaseService(serviceName, (json \ "app").as[JsObject])
   }
 
-  override def updateImage(service: BaseService, newImage: String, expectedImages: Seq[String]): Future[String] = {
-    log.info(s"updating '${service.name}' to '$newImage' image against CaaS API")
+  override def update(service: BaseService, target: BaseServiceProto): Future[BaseService] = {
+    log.info(s"updating '${service.name}' to '${target.image}' image against CaaS API")
     val imageUpdater = __.json.pickBranch(
-      (__ \ "container" \ "docker" \ "image").json.update( __.read(Reads.pure(JsString(newImage))) )
+      (__ \ "container" \ "docker" \ "image").json.update( __.read(Reads.pure(JsString(target.image))) )
         andThen
-      (__ \ "version").json.prune
+        (__ \ "version").json.prune
     )
 
     for {
-      getReq <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
-      getResp <- getReq.get()
-      app = (getResp.json \ "app").as[JsObject]
-      currentImage = (app \ "container" \ "docker" \ "image").as[String]
-      _ <- if (expectedImages.nonEmpty && !expectedImages.contains(currentImage)) Future.failed(
-        new RuntimeException("image was different than expected")
-      ) else Future.successful(())
-      _ = log.debug(s"old app: $app")
-      newApp <- Future.fromTry(Try(app.transform(imageUpdater).get))
-      _ = log.debug(s"new app: $newApp")
+      dcosApp <- Future.fromTry(Try(service.asInstanceOf[DcosBaseService]))
+      _ = log.debug(s"old app: ${dcosApp.json}")
+      newJson <- Future.fromTry(Try(dcosApp.json.transform(imageUpdater).get))
+      _ = log.debug(s"new app: $newJson")
       putReq <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
-      putResp <- putReq.put(newApp)
+      putResp <- putReq.put(newJson)
       _ <- if (putResp.status == 200) Future.successful(()) else Future.failed(
         new RuntimeException(putResp.body)
       )
-    } yield newImage
+    } yield dcosApp.copy(
+      json = newJson
+    )
   }
+
+  override def scale(service: BaseService, numInstance: Int): Future[BaseService] = ???
 }

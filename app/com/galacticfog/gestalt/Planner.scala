@@ -35,15 +35,15 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
       MetaProviderProto(providerAndBaseImage._2 + expectedVersion) , MetaProviderProto(providerAndBaseImage._2 + targetVersion)
     )
 
-  def simpleSvcUpgrade(svcAndBaseImage: (BaseService, String)): (BaseService, (String, String)) =
+  def simpleSvcUpgrade(svcAndBaseImage: (String, String)): (String, (BaseServiceProto, BaseServiceProto)) =
     svcAndBaseImage._1 -> (
-      svcAndBaseImage._2 + expectedVersion, svcAndBaseImage._2 + targetVersion
+      BaseServiceProto(svcAndBaseImage._2 + expectedVersion), BaseServiceProto(svcAndBaseImage._2 + targetVersion)
     )
 
   val baseUpgrades = Map(
-    SECURITY -> "galacticfog/gestalt-security:release-",
-    META     -> "galacticfog/gestalt-meta:release-",
-    UI       -> "galacticfog/gestalt-ui-react:release-"
+    BaseServices.SECURITY -> "galacticfog/gestalt-security:release-",
+    BaseServices.META     -> "galacticfog/gestalt-meta:release-",
+    BaseServices.UI       -> "galacticfog/gestalt-ui-react:release-"
   ) map simpleSvcUpgrade
 
   val providerUpgrades = Map(
@@ -73,17 +73,23 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
       val caasClient = caasClientFactory.ask(CaasClientFactory.GetClient)(30 seconds).mapTo[CaasClient]
 
       log.info("received ComputePlan, beginning plan computation...")
-      val fBaseServices = Future.traverse(Seq(SECURITY, META, UI)) (
-        svc => caasClient.flatMap(_.getCurrentImage(svc)).map(svc -> _)
-      )
+      val fBaseSec  = caasClient.flatMap(_.getService(BaseServices.SECURITY))
+      val fBaseMeta = caasClient.flatMap(_.getService(BaseServices.META))
+      val fBaseUI   = caasClient.flatMap(_.getService(BaseServices.UI))
 
       val plan = for {
         // Base services
-        baseSvcs <- fBaseServices
-        base = baseSvcs flatMap {
-          case (svc,actual) => baseUpgrades.get(svc) map {
-            case (exp, tgt) => UpgradeBaseService(svc, exp, tgt, actual)
-          }
+        baseSec  <- fBaseSec
+        baseMeta <- fBaseMeta
+        baseUI   <- fBaseUI
+        base = Seq(baseSec,baseMeta,baseUI) map {
+          svc =>
+            val (exp,tgt) = baseUpgrades(svc.name)
+            UpgradeBaseService(
+              expected = exp,
+              target = tgt,
+              actual = svc
+            )
         }
         // Providers
         providers <- metaClient.listProviders
@@ -99,7 +105,10 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
           }
         }
       } yield UpgradePlan(
-        Seq(BackupDatabase) ++ base ++ metaMigrations ++ updateExecs ++ updatedProviders
+        Seq(SuspendBaseService(baseMeta), BackupDatabase)
+          ++ base
+          ++ Seq(ResumeBaseService(baseMeta)) ++ metaMigrations
+          ++ updateExecs ++ updatedProviders
       )
 
       plan pipeTo sender()

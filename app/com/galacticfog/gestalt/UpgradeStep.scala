@@ -4,7 +4,9 @@ import java.util.UUID
 
 import play.api.libs.json.{JsObject, Json}
 
-case class MetaProviderProto(image: String)
+case class MetaProviderProto(image: String) {
+  override def toString: String = image
+}
 case class MetaProvider(fqon: String, name: String, id: UUID, providerType: UUID, image: Option[String], config: JsObject = Json.obj(), services: Seq[JsObject] = Seq.empty) {
   def getProto = MetaProviderProto(image getOrElse "")
 }
@@ -19,17 +21,30 @@ case object BackupDatabase extends UpgradeStep {
   override def message: String = "Back up database"
 }
 
-sealed trait BaseService {
+case class BaseServiceProto(image: String) {
+  override def toString = image
+}
+
+trait BaseService {
   def name: String
+  def image: String
+  def numInstances: Int
+  def getProto: BaseServiceProto = BaseServiceProto(this.image)
 }
-case object SECURITY extends BaseService {
-  def name = "security"
+case object BaseServices {
+  val SECURITY = "security"
+  val META = "meta"
+  val UI = "ui-react"
 }
-case object META extends BaseService {
-  def name = "meta"
+
+case class SuspendBaseService(svc: BaseService) extends UpgradeStep {
+  override def warning: Boolean = false
+  override def message: String  = s"Suspended ${svc.name}"
 }
-case object UI extends BaseService {
-  def name = "ui-react"
+
+case class ResumeBaseService(svc: BaseService) extends UpgradeStep {
+  override def warning: Boolean = false
+  override def message: String  = s"Resumed ${svc.name}"
 }
 
 case class MetaMigration(version: String) extends UpgradeStep {
@@ -37,12 +52,12 @@ case class MetaMigration(version: String) extends UpgradeStep {
   override def message: String = s"Perform meta schema migration $version"
 }
 
-case class UpgradeBaseService(service: BaseService, expected: String, target: String, actual: String) extends UpgradeStep {
+case class UpgradeBaseService(expected: BaseServiceProto, target: BaseServiceProto, actual: BaseService) extends UpgradeStep {
   override def message: String = {
-    val msg = s"Upgrade base service ${service.name} from ${actual} to ${target}"
+    val msg = s"Upgrade base service ${actual.name} from ${actual.getProto.image} to ${target.image}"
     if (warning) "WARNING: " + msg + s" (expected image ${expected})" else msg
   }
-  override def warning: Boolean = expected != actual
+  override def warning: Boolean = expected != actual.getProto
 }
 
 case class UpgradeExecutor(expected: MetaProviderProto, target: MetaProviderProto, actual: MetaProvider) extends UpgradeStep {
