@@ -10,16 +10,17 @@ import play.api.libs.json._
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
 import play.api.{Configuration, Logger}
 
+import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object DefaultDcosCaasClient {
   case class DcosBaseService(name: String, json: JsObject) extends BaseService {
-    override def image: String = (json \ "app" \ "container" \ "docker" \ "image").asOpt[String].getOrElse(
+    override def image: String = (json \ "container" \ "docker" \ "image").asOpt[String].getOrElse(
       throw new RuntimeException("could not parse '.container.docker.image' from Marathon app response")
     )
-    override def numInstances: Int = (json \ "app" \ "instances").asOpt[Int].getOrElse(
+    override def numInstances: Int = (json \ "instances").asOpt[Int].getOrElse(
       throw new RuntimeException("could not parse '.instances' from Marathon app response")
     )
   }
@@ -104,6 +105,44 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
     } yield req
   }
 
+  private[this] def updateMarathonApp(service: BaseService, update: Reads[JsObject]): Future[DcosBaseService] = {
+    def deploymentWait(deploymentId: String) = {
+      def pollForDeployments(maxTries: Int = 30): Future[JsObject] = {
+        Thread.sleep(1000)
+        genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
+          .flatMap (_.get)
+          .flatMap (processResponse)
+          .flatMap {
+            j =>
+              println(s"current app: $j")
+              if ((j \ "app" \ "deployments").asOpt[Seq[JsObject]].getOrElse(Seq.empty).exists(j => (j \ "id").asOpt[String].contains(deploymentId))) {
+                if (maxTries == 0) Future.failed(new RuntimeException("timeout exceeded waiting for deployment to complete"))
+                else {
+                  pollForDeployments(maxTries - 1)
+                }
+              } else Future.successful((j \ "app").as[JsObject])
+          }
+      }
+      pollForDeployments()
+    }
+    for {
+      dcosApp <- Future.fromTry(Try(service.asInstanceOf[DcosBaseService]))
+      _ = log.info(s"old app: ${dcosApp.json}")
+      newJson <- Future.fromTry(Try(dcosApp.json.transform(update).get))
+      _ = log.info(s"new app: $newJson")
+      putReq <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
+      putResp <- putReq.put(newJson)
+      deploymentId <- if (putResp.status == 200) Future.successful(
+        (putResp.json \ "deploymentId").as[String]
+      ) else Future.failed(
+        new RuntimeException(putResp.body)
+      )
+      verifiedNewJson <- deploymentWait(deploymentId)
+    } yield dcosApp.copy(
+      json = verifiedNewJson
+    )
+  }
+
   override def getService(serviceName: String): Future[BaseService] = {
     log.info(s"looking up '$serviceName' against CaaS API")
     for {
@@ -122,25 +161,9 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
     updateMarathonApp(service, imageUpdater)
   }
 
-  private[this] def updateMarathonApp(service: BaseService, update: Reads[JsObject]): Future[DcosBaseService] = {
-    for {
-      dcosApp <- Future.fromTry(Try(service.asInstanceOf[DcosBaseService]))
-      _ = log.debug(s"old app: ${dcosApp.json}")
-      newJson <- Future.fromTry(Try(dcosApp.json.transform(update).get))
-      _ = log.debug(s"new app: $newJson")
-      putReq <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
-      putResp <- putReq.put(newJson)
-      _ <- if (putResp.status == 200) Future.successful(()) else Future.failed(
-        new RuntimeException(putResp.body)
-      )
-    } yield dcosApp.copy(
-      json = newJson
-    )
-  }
-
-  override def scale(service: BaseService, numInstance: Int): Future[BaseService] = {
+  override def scale(service: BaseService, numInstances: Int): Future[BaseService] = {
     val scaleUpdater = __.json.pickBranch(
-      (__ \ "instances" \ "docker" \ "image").json.update( __.read(Reads.pure(JsNumber(numInstance))) )
+      (__ \ "instances").json.update( __.read(Reads.pure(JsNumber(numInstances))) )
         andThen
         (__ \ "version").json.prune
     )

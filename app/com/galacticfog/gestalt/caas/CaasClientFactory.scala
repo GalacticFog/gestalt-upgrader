@@ -17,7 +17,7 @@ import scala.util.{Failure, Success}
 trait CaasClient {
   def getService(serviceName: String): Future[BaseService]
   def update(service: BaseService, target: BaseServiceProto): Future[BaseService]
-  def scale(service: BaseService, numInstance: Int): Future[BaseService]
+  def scale(service: BaseService, numInstances: Int): Future[BaseService]
 }
 
 object CaasClientFactory {

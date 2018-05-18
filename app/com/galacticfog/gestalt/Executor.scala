@@ -94,4 +94,5 @@ class DefaultExecutor @Inject() ( metaClient: MetaClient,
     case MetaMigration(_) =>
       Future.successful("Meta migrations cannot be reverted; database restore will handle this")
   }
+
 }
