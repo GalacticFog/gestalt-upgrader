@@ -95,14 +95,14 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
     "properly upgrade Meta provider services" in new WithConfig {
       mockMetaClient.getProvider(metaProvider.fqon, metaProvider.id) returns Future.successful(metaProvider)
       mockMetaClient.updateProvider(any,any) returns Future.successful(metaProvider.copy(image = Some(tgtProto.image)))
-      await(executor.execute(upgradeProvider)) must matching(s"upgraded meta provider.*${metaProvider.id}.*from .*image:actual.* to .*image:target.*")
+      await(executor.execute(upgradeProvider)) must matching(s"Upgraded meta provider.*${metaProvider.id}.*from .*image:actual.* to .*image:target.*")
       there was one(mockMetaClient).getProvider(metaProvider.fqon, metaProvider.id)
       there was one(mockMetaClient).updateProvider(metaProvider,tgtProto)
     }
 
     "properly roll-back Meta provider services" in new WithConfig {
       mockMetaClient.updateProvider(any,any) returns Future.successful(metaProvider)
-      await(executor.revert(upgradeProvider)) must matching(s"reverted meta provider.*${metaProvider.id}.*to image:actual")
+      await(executor.revert(upgradeProvider)) must matching(s"Reverted meta provider.*${metaProvider.id}.*to image:actual")
       there was one(mockMetaClient).updateProvider(metaProvider, metaProvider.getProto)
     }
 
@@ -119,14 +119,14 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
     "properly upgrade Meta executor provider" in new WithConfig {
       mockMetaClient.getProvider(metaExecutor.fqon, metaExecutor.id) returns Future.successful(metaExecutor)
       mockMetaClient.updateProvider(any,any) returns Future.successful(metaExecutor.copy(image = Some(tgtProto.image)))
-      await(executor.execute(upgradeExecutor)) must matching(s"upgraded meta executor.*${metaExecutor.id}.*from .*image:actual.* to .*image:target.*")
+      await(executor.execute(upgradeExecutor)) must matching(s"Upgraded meta executor.*${metaExecutor.id}.*from .*image:actual.* to .*image:target.*")
       there was one(mockMetaClient).getProvider(metaExecutor.fqon, metaExecutor.id)
       there was one(mockMetaClient).updateProvider(metaExecutor,tgtProto)
     }
 
     "properly roll-back Meta executor provider" in new WithConfig {
       mockMetaClient.updateProvider(any,any) returns Future.successful(metaExecutor)
-      await(executor.revert(upgradeExecutor)) must matching(s"reverted meta executor.*${metaExecutor.id}.*to .*image:actual")
+      await(executor.revert(upgradeExecutor)) must matching(s"Reverted meta executor.*${metaExecutor.id}.*to .*image:actual")
       there was one(mockMetaClient).updateProvider(metaExecutor,metaExecutor.getProto)
     }
 
@@ -142,22 +142,22 @@ class ExecutorSpec extends Specification with Mockito with MockWSHelpers with Fu
 
     "properly upgrade base service" in new WithConfig {
       mockCaasClient.getService(BaseServices.SECURITY) returns Future.successful(baseService)
-      await(executor.execute(upgradeBaseSvc)) must matching(s"upgraded base service 'security' from .*image:actual.* to .*image:target")
+      await(executor.execute(upgradeBaseSvc)) must matching(s"Upgraded base service 'security' from .*image:actual.* to .*image:target")
       there was one(mockCaasClient).update(baseService, baseTgtProto)
     }
 
     "properly roll-back base service" in new WithConfig {
-      await(executor.revert(upgradeBaseSvc)) must matching(s"reverted base service 'security' to image:actual")
+      await(executor.revert(upgradeBaseSvc)) must matching(s"Reverted base service 'security' to image:actual")
       there was one(mockCaasClient).update(baseService, baseService.getProto)
     }
 
     "properly suspend base service" in new WithConfig {
-      await(executor.execute(SuspendBaseService(baseService))) must matching(s"suspended base service 'security' to 0 instances")
+      await(executor.execute(SuspendBaseService(baseService))) must matching(s"Suspended base service 'security' to 0 instances")
       there was one(mockCaasClient).scale(baseService, 0)
     }
 
     "properly resume base service" in new WithConfig {
-      await(executor.execute(ResumeBaseService(baseService))) must matching(s"resumed base service 'security' to 2 instances")
+      await(executor.execute(ResumeBaseService(baseService))) must matching(s"Resumed base service 'security' to 2 instances")
       there was one(mockCaasClient).scale(baseService, baseService.numInstances)
     }
 
