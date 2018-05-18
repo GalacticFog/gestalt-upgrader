@@ -47,7 +47,8 @@ class DCOSAuthTokenActor @Inject() ( clientFac: WSClientFactory ) extends Actor 
           val f = requestChild.ask(r)(30 seconds)
           f.onComplete {
             case Success(response) =>
-              log.info(s"received authentication response from child: $response")
+              log.debug(s"received authentication response from child: $response")
+              log.info(s"received authentication response from child: ${response.getClass.getSimpleName}")
               if (response.isInstanceOf[DCOSAuthTokenResponse]) {
                 acsAuthorizationToken = Some(response.asInstanceOf[DCOSAuthTokenResponse].authToken)
               }

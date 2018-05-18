@@ -180,8 +180,27 @@ class DefaultMetaClient @Inject() ( ws: WSClient, config: Configuration )
   }
 
   override def performMigration(version: String): Future[String] = {
-    post(s"/migrate", "version" -> version).map {
-      j => (j \ "message").asOpt[String].getOrElse("Migration complete")
+    def readyWait() = {
+      def pollForDeployments(maxTries: Int = 20): Future[Unit] = {
+        Thread.sleep(5000)
+        genRequest("/health")
+          .get()
+          .flatMap(resp =>
+            if (resp.status == 200) Future.successful(())
+            else Future.failed(new RuntimeException(s"meta not ready: ${resp.status}"))
+          )
+          .recoverWith {
+            case _ if maxTries > 0 => pollForDeployments(maxTries - 1)
+            case _ => Future.failed(new RuntimeException("timeout exceeded waiting for meta to answer"))
+          }
+      }
+      pollForDeployments()
     }
+    for {
+      _ <- readyWait()
+      resp <- post(s"/migrate", "version" -> version).map {
+        j => s"Migration '$version': " + (j \ "message").asOpt[String].getOrElse("complete")
+      }
+    } yield resp
   }
 }

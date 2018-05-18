@@ -1,6 +1,5 @@
 package com.galacticfog.gestalt
 
-import akka.persistence.RecoveryCompleted
 import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
 import com.galacticfog.gestalt.Upgrader._
@@ -57,7 +56,7 @@ class Upgrader @Inject()(executor: Executor)
   implicit val ec = context.dispatcher
 
   private[this] def dispatchStep(step: UpgradeStep): Unit = {
-    log.info(s"dispatching $step to executor")
+    log.info(s"dispatching ${step.label} to executor")
     executor.execute(step) onComplete({
       case Success(msg) => self ! CurrentStepCompleted(msg)
       case Failure(err) => self ! CurrentStepFailed(err)
@@ -87,7 +86,7 @@ class Upgrader @Inject()(executor: Executor)
             currentStep = None
           )
         case Some(nextStep) =>
-          log.info(s"marking step active: $nextStep")
+          log.info(s"marking step active: ${nextStep.label}")
           if (recoveryFinished) dispatchStep(nextStep)
           data.copy(
             currentStep = Some(nextStep),
@@ -100,7 +99,7 @@ class Upgrader @Inject()(executor: Executor)
           log.warning("applying CurrentStepComplete even though there is no current step")
           data
         case Some(current) =>
-          log.info(s"marking step complete: $current")
+          log.info(s"marking step complete: ${current.label}")
           data.copy(
             completedSteps = data.completedSteps :+ current,
             currentStep = None,
@@ -113,7 +112,7 @@ class Upgrader @Inject()(executor: Executor)
           log.warning("applying CurrentStepFailed even though there is no current step")
           data
         case Some(current) =>
-          log.info(s"marking step failed: $current")
+          log.info(s"marking step failed: ${current.label}")
           context.system.eventStream.publish(CurrentStepFailed(err))
           data.copy(
             failedStep = Some(current -> err),
@@ -152,15 +151,6 @@ class Upgrader @Inject()(executor: Executor)
   }
 
   when(Upgrading) {
-    case Event(RecoveryCompleted, d) =>
-      log.info("recovery complete")
-      d.currentStep match {
-        case None =>
-          goto(Complete) applying UpgradeComplete
-        case Some(step) =>
-          dispatchStep(step)
-          stay
-      }
     case Event(GetLog, d) =>
       stay replying d.log
     case Event(NextStepStarted, _) =>
@@ -197,6 +187,11 @@ class Upgrader @Inject()(executor: Executor)
     case Event(e, _) =>
       log.info("ignoring unexpected command: " + e.toString)
       stay
+  }
+
+  override def onRecoveryCompleted(): Unit = {
+    log.info("recovery complete")
+    stateData.currentStep.foreach(dispatchStep)
   }
 
 }
