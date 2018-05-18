@@ -79,13 +79,13 @@ class Planner16Spec extends Specification with Mockito {
           BackupDatabase,
           UpgradeBaseService(BaseServiceProto("galacticfog/gestalt-security:release-1.5.0"), BaseServiceProto("galacticfog/gestalt-security:release-1.6.0"), sec),
           UpgradeBaseService(BaseServiceProto(    "galacticfog/gestalt-meta:release-1.5.0"), BaseServiceProto(    "galacticfog/gestalt-meta:release-1.6.0"), meta),
-          UpgradeBaseService(BaseServiceProto("galacticfog/gestalt-ui-react:release-1.5.0"), BaseServiceProto("galacticfog/gestalt-ui-react:release-1.6.0"), ui),
           ResumeBaseService(meta),
           MetaMigration("V1"), MetaMigration("V2"), MetaMigration("V3"),
           UpgradeExecutor(MetaProviderProto("galacticfog/gestalt-laser-executor-jvm:release-1.5.0"), MetaProviderProto("galacticfog/gestalt-laser-executor-jvm:release-1.6.0"), currentProviders(1)),
           UpgradeProvider(MetaProviderProto("galacticfog/kong:release-1.5.0"),                MetaProviderProto("galacticfog/kong:release-1.6.0"),                              currentProviders(0)),
           UpgradeProvider(MetaProviderProto("galacticfog/gestalt-laser:release-1.5.0"),       MetaProviderProto("galacticfog/gestalt-laser:release-1.6.0"),                     currentProviders(2)),
-          UpgradeProvider(MetaProviderProto("galacticfog/gestalt-api-gateway:release-1.5.0"), MetaProviderProto("galacticfog/gestalt-api-gateway:release-1.6.0"),               currentProviders(3))
+          UpgradeProvider(MetaProviderProto("galacticfog/gestalt-api-gateway:release-1.5.0"), MetaProviderProto("galacticfog/gestalt-api-gateway:release-1.6.0"),               currentProviders(3)),
+          UpgradeBaseService(BaseServiceProto("galacticfog/gestalt-ui-react:release-1.5.0"), BaseServiceProto("galacticfog/gestalt-ui-react:release-1.6.0"), ui)
         )))
       }
     }

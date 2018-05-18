@@ -95,28 +95,29 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
     }
   }
 
-  private[this] def genRequest(endpoint: String): Future[WSRequest] = {
+  private[this] def genRequest(endpoint: String, qs: (String,String)*): Future[WSRequest] = {
     val url = s"${marathonBaseUrl}/${endpoint.stripPrefix("/")}"
     for {
       acsToken <- getAuthToken
       req = acsToken.foldLeft(client.url(url)) {
         case (req, token) => req.withHttpHeaders(HeaderNames.AUTHORIZATION -> s"token=${token}")
-      }
+      }.withQueryStringParameters(qs:_*)
     } yield req
   }
 
-  private[this] def updateMarathonApp(service: BaseService, update: Reads[JsObject]): Future[DcosBaseService] = {
+  private[this] def updateMarathonApp(service: DcosBaseService, payload: JsValue): Future[DcosBaseService] = {
     def deploymentWait(deploymentId: String) = {
-      def pollForDeployments(maxTries: Int = 30): Future[JsObject] = {
-        Thread.sleep(1000)
+      def pollForDeployments(maxTries: Int = 20): Future[JsObject] = {
+        Thread.sleep(5000)
         genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
           .flatMap (_.get)
           .flatMap (processResponse)
           .flatMap {
             j =>
-              println(s"current app: $j")
+              log.info(s"polling deployments for app '${service.name}'")
+              log.debug(s"current app: $j")
               if ((j \ "app" \ "deployments").asOpt[Seq[JsObject]].getOrElse(Seq.empty).exists(j => (j \ "id").asOpt[String].contains(deploymentId))) {
-                if (maxTries == 0) Future.failed(new RuntimeException("timeout exceeded waiting for deployment to complete"))
+                if (maxTries == 0) Future.failed(new RuntimeException(s"timeout exceeded waiting for deployment to complete on update of '${service.name}'"))
                 else {
                   pollForDeployments(maxTries - 1)
                 }
@@ -126,19 +127,15 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
       pollForDeployments()
     }
     for {
-      dcosApp <- Future.fromTry(Try(service.asInstanceOf[DcosBaseService]))
-      _ = log.info(s"old app: ${dcosApp.json}")
-      newJson <- Future.fromTry(Try(dcosApp.json.transform(update).get))
-      _ = log.info(s"new app: $newJson")
-      putReq <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}")
-      putResp <- putReq.put(newJson)
+      putReq <- genRequest(s"/v2/apps/$appGroupPrefix/${service.name}", "force" -> "true")
+      putResp <- putReq.put(payload)
       deploymentId <- if (putResp.status == 200) Future.successful(
         (putResp.json \ "deploymentId").as[String]
       ) else Future.failed(
         new RuntimeException(putResp.body)
       )
       verifiedNewJson <- deploymentWait(deploymentId)
-    } yield dcosApp.copy(
+    } yield service.copy(
       json = verifiedNewJson
     )
   }
@@ -158,15 +155,24 @@ class DefaultDcosCaasClient( wsFactory: WSClientFactory,
         andThen
         (__ \ "version").json.prune
     )
-    updateMarathonApp(service, imageUpdater)
+
+    for {
+      dcosApp <- Future.fromTry(Try(service.asInstanceOf[DcosBaseService]))
+      _ = log.debug(s"old app: ${dcosApp.json}")
+      newJson <- Future.fromTry(Try(dcosApp.json.transform(imageUpdater).get))
+      _ = log.debug(s"new app: $newJson")
+      _ <- updateMarathonApp(dcosApp, newJson)
+    } yield dcosApp.copy(
+      json = newJson
+    )
   }
 
   override def scale(service: BaseService, numInstances: Int): Future[BaseService] = {
-    val scaleUpdater = __.json.pickBranch(
-      (__ \ "instances").json.update( __.read(Reads.pure(JsNumber(numInstances))) )
-        andThen
-        (__ \ "version").json.prune
-    )
-    updateMarathonApp(service, scaleUpdater)
+    for {
+      dcosApp <- Future.fromTry(Try(service.asInstanceOf[DcosBaseService]))
+      newApp  <- updateMarathonApp(dcosApp, Json.obj(
+        "instances" -> numInstances
+      ))
+    } yield newApp
   }
 }

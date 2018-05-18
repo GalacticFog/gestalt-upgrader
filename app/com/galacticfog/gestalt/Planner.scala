@@ -82,7 +82,7 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
         baseSec  <- fBaseSec
         baseMeta <- fBaseMeta
         baseUI   <- fBaseUI
-        base = Seq(baseSec,baseMeta,baseUI) map {
+        Seq(secUpdate,metaUpdate,uiUpdate) = Seq(baseSec,baseMeta,baseUI) map {
           svc =>
             val (exp,tgt) = baseUpgrades(svc.name)
             UpgradeBaseService(
@@ -106,9 +106,9 @@ class Planner16 @Inject() ( @Named(CaasClientFactory.actorName) caasClientFactor
         }
       } yield UpgradePlan(
         Seq(SuspendBaseService(baseMeta), BackupDatabase)
-          ++ base
+          ++ Seq(secUpdate,metaUpdate)
           ++ Seq(ResumeBaseService(baseMeta)) ++ metaMigrations
-          ++ updateExecs ++ updatedProviders
+          ++ updateExecs ++ updatedProviders ++ Seq(uiUpdate)
       )
 
       plan pipeTo sender()
